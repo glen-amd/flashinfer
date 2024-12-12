@@ -16,7 +16,11 @@
 #ifndef FLASHINFER_PREFILL_PARAMS_CUH_
 #define FLASHINFER_PREFILL_PARAMS_CUH_
 
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_runtime.h>
+#endif
 
 #include <cmath>
 #include <cstdint>

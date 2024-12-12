@@ -15,7 +15,12 @@
  */
 #ifndef FLASHINFER_ATTENTION_VARIANTS_CUH_
 #define FLASHINFER_ATTENTION_VARIANTS_CUH_
+
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_runtime.h>
+#endif
 
 #include <cstdint>
 #include <type_traits>

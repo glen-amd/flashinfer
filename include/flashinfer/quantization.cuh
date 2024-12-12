@@ -15,10 +15,16 @@
  */
 #ifndef FLASHINFER_QUANTIZATION_CUH_
 #define FLASHINFER_QUANTIZATION_CUH_
+
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
+#include <hipcub/hipcub.hpp>
+#else
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
-
 #include <cub/cub.cuh>
+#endif
 
 #include "utils.cuh"
 

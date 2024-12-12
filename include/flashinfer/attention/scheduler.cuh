@@ -16,7 +16,11 @@
 #ifndef FLASHINFER_ATTENTION_SCHEDULER_CUH_
 #define FLASHINFER_ATTENTION_SCHEDULER_CUH_
 
+#ifdef __HIPCC__
+#include <hip/hip_runtime_api.h>
+#else
 #include <cuda_runtime_api.h>
+#endif
 
 #include <algorithm>
 #include <cstddef>

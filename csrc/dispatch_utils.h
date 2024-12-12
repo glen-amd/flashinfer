@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 #pragma once
+
+#ifdef __HIPCC__
+#include <hipi/hip_bf16.h>
+#include <hip/hip_fp16.h>
+#include <hip/hip_fp8.h>
+#else
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_fp8.h>
+#endif
 #include <flashinfer/exception.h>
 
 #include <flashinfer/layout.cuh>

@@ -16,8 +16,13 @@
 #ifndef FLASHINFER_GEMM_BMM_FP8_CUH_
 #define FLASHINFER_GEMM_BMM_FP8_CUH_
 
+#ifdef __HIPCC__
+#include <hipblaslt.h>
+#include <hip/hip_fp8.h>
+#else
 #include <cublasLt.h>
 #include <cuda_fp8.h>
+#endif
 
 #include <iostream>
 #include <memory>

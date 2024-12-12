@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 #pragma once
+
 // NOTE(Zihao): only include minimal headers to accelerate compilation
+#ifdef __HIPCC__
+#include <hipi/hip_bf16.h>
+#include <hip/hip_fp16.h>
+#include <hip/hip_fp8.h>
+#else
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_fp8.h>
+#endif
 #include <torch/csrc/utils/pybind.h>
 
 #ifdef FLASHINFER_ENABLE_BF16

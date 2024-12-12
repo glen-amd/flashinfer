@@ -16,8 +16,13 @@
 #ifndef FLASHINFER_MATH_CUH_
 #define FLASHINFER_MATH_CUH_
 
+#ifdef __HIPCC__
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
+#endif
 
 #include <cstdint>
 

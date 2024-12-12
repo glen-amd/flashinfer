@@ -16,9 +16,15 @@
 #ifndef FLASHINFER_PERMUTED_SMEM_CUH_
 #define FLASHINFER_PERMUTED_SMEM_CUH_
 
+#ifdef __HIPCC__
+#include <hipi/hip_bf16.h>
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
+#endif
 
 #include <cuda/pipeline>
 

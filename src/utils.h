@@ -15,16 +15,26 @@
  */
 #pragma once
 
+#ifdef __HIPCC__
+#include <hipi/hip_bf16.h>
+#include <hip/hip_fp16.h>
+#include <hip/hip_fp8.h>
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_fp8.h>
 #include <cuda_runtime.h>
+#endif
+
+#if defined(__CUDACC__) || defined(__HIPCC__)
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/host_vector.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/random.h>
 #include <thrust/transform.h>
+#endif
 
 #include <random>
 #include <sstream>
