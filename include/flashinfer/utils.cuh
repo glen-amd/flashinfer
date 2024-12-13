@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "exception.h"
+#include "gpu_defines_cuda_hip.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -44,20 +45,20 @@
 #endif
 
 #ifndef NDEBUG
-#define FLASHINFER_CUDA_CALL(func, ...)                                                     \
-  {                                                                                         \
-    cudaError_t e = (func);                                                                 \
-    if (e != cudaSuccess) {                                                                 \
-      std::cerr << "CUDA Error: " << cudaGetErrorString(e) << " (" << e << ") " << __FILE__ \
-                << ": line " << __LINE__ << " at function " << STR(func) << std::endl;      \
-      return e;                                                                             \
-    }                                                                                       \
+#define FLASHINFER_CUDA_CALL(func, ...)                                                   \
+  {                                                                                       \
+    gpuError_t e = (func);                                                                \
+    if (e != gpuSuccess) {                                                                \
+      std::cerr << "CUDA Error: " << gpuGetErrorString(e)<< " (" << e << ") " << __FILE__ \
+                << ": line " << __LINE__ << " at function " << STR(func) << std::endl;    \
+      return e;                                                                           \
+    }                                                                                     \
   }
 #else
 #define FLASHINFER_CUDA_CALL(func, ...) \
   {                                     \
-    cudaError_t e = (func);             \
-    if (e != cudaSuccess) {             \
+    gpuError_t e = (func);              \
+    if (e != gpuSuccess) {              \
       return e;                         \
     }                                   \
   }
@@ -278,10 +279,10 @@ __forceinline__ __device__ __host__ T1 ceil_div(const T1 x, const T2 y) {
 
 inline std::pair<int, int> GetCudaComputeCapability() {
   int device_id = 0;
-  cudaGetDevice(&device_id);
+  gpuGetDevice(&device_id);
   int major = 0, minor = 0;
-  cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, device_id);
-  cudaDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMinor, device_id);
+  gpuDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, device_id);
+  gpuDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMinor, device_id);
   return std::make_pair(major, minor);
 }
 

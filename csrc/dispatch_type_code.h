@@ -15,14 +15,14 @@
  */
 #pragma once
 
-#ifdef __HIPCC__
-#include <hipi/hip_bf16.h>
-#include <hip/hip_fp16.h>
-#include <hip/hip_fp8.h>
-#else
+#ifdef __CUDACC__
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_fp8.h>
+#elif defined(__HIPCC__)
+#include <hipi/hip_bf16.h>
+#include <hip/hip_fp16.h>
+#include <hip/hip_fp8.h>
 #endif
 #include <flashinfer/exception.h>
 
