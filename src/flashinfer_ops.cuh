@@ -35,9 +35,9 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::Para
                                                  float* tmp_s, gpuStream_t stream);
 
 template <uint32_t HEAD_DIM_CKV, uint32_t HEAD_DIM_KPE, typename AttentionVariant>
-cudaError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::ParamsT params,
-                                                     typename AttentionVariant::DTypeO* tmp_v,
-                                                     float* tmp_s, cudaStream_t stream);
+gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::ParamsT params,
+                                                    typename AttentionVariant::DTypeO* tmp_v,
+                                                    float* tmp_s, gpuStream_t stream);
 
 class BatchDecodeHandler {
  public:
@@ -612,10 +612,10 @@ gpuError_t BatchDecodeHandlerPlan(BatchDecodeHandler* handler, void* float_buffe
 }
 
 template <typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-cudaError_t BatchDecodeWithPagedKVCacheWrapperMLA(
+gpuError_t BatchDecodeWithPagedKVCacheWrapperMLA(
     BatchDecodeHandler* handler, DTypeQ* q_nope, DTypeQ* q_pe, IdType* q_offset,
     paged_kv_mla_t<DTypeKV, IdType> paged_kv, DTypeO* o, float* lse, uint32_t num_qo_heads,
-    float sm_scale, float rope_scale = 1.f, float rope_theta = 1e4, cudaStream_t stream = nullptr) {
+    float sm_scale, float rope_scale = 1.f, float rope_theta = 1e4, gpuStream_t stream = nullptr) {
   DISPATCH_head_dim(paged_kv.head_dim_ckv, HEAD_DIM_CKV, {
     // fixme: head_dim_ckv(kv_lora_rank) is 8 times the size of head_dim_kpe(qk_rope_head_dim) for
     // all MLA model (DeepSeek-V2-Lite, DeepSeek-V2.5, MiniCPM3) at the time Oct.2024
@@ -637,16 +637,16 @@ cudaError_t BatchDecodeWithPagedKVCacheWrapperMLA(
     return BatchDecodeWithPagedKVCacheDispatchedMLA<HEAD_DIM_CKV, HEAD_DIM_KPE, AttentionVariant>(
         params, handler->GetTmpV<DTypeO>(), handler->GetTmpS(), stream);
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-cudaError_t BatchDecodeHandlerPlanMLA(BatchDecodeHandler* handler, void* float_buffer,
-                                      size_t float_workspace_size_in_bytes, void* int_buffer,
-                                      size_t int_workspace_size_in_bytes, IdType* indptr_h,
-                                      IdType* last_page_len_h, uint32_t batch_size,
-                                      uint32_t num_qo_heads, uint32_t head_dim_ckv,
-                                      uint32_t page_size) {
+gpuError_t BatchDecodeHandlerPlanMLA(BatchDecodeHandler* handler, void* float_buffer,
+                                     size_t float_workspace_size_in_bytes, void* int_buffer,
+                                     size_t int_workspace_size_in_bytes, IdType* indptr_h,
+                                     IdType* last_page_len_h, uint32_t batch_size,
+                                     uint32_t num_qo_heads, uint32_t head_dim_ckv,
+                                     uint32_t page_size) {
   DISPATCH_head_dim(head_dim_ckv, HEAD_DIM_CKV, {
     // fixme: head_dim_ckv(kv_lora_rank) is 8 times the size of head_dim_kpe(qk_rope_head_dim) for
     // all MLA model (DeepSeek-V2-Lite, DeepSeek-V2.5, MiniCPM3) at the time Oct.2024

@@ -650,10 +650,10 @@ cudaError_t AttentionSum(DTypeIn* v, DTypeO* v_sum, uint32_t num_index_sets, uin
 }
 
 template <typename DTypeIn, typename DTypeO, typename IdType>
-cudaError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DTypeO* v_merged,
-                                      float* s_merged, uint32_t max_seq_len, uint32_t* seq_len,
-                                      uint32_t num_heads, uint32_t head_dim,
-                                      gpuStream_t stream = nullptr) {
+gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DTypeO* v_merged,
+                                     float* s_merged, uint32_t max_seq_len, uint32_t* seq_len,
+                                     uint32_t num_heads, uint32_t head_dim,
+                                     gpuStream_t stream = nullptr) {
   int dev_id = 0;
   int num_sms = 0;
   int num_blocks_per_sm = 0;
@@ -681,7 +681,7 @@ cudaError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DTyp
         gpuFuncSetAttribute(kernel, gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
     FLASHINFER_CUDA_CALL(gpuLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <typename DTypeIn, typename DTypeO, typename IdType>

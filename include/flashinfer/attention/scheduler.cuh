@@ -197,11 +197,11 @@ inline gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
 }
 
 template <uint32_t HEAD_DIM_CKV, uint32_t HEAD_DIM_KPE, typename AttentionVariant>
-cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
+gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
     bool& split_kv, uint32_t& max_grid_size, uint32_t& max_num_pages_per_batch,
     uint32_t& new_batch_size, uint32_t& gdy, uint32_t batch_size,
     typename AttentionVariant::IdType* kv_indptr_h, const uint32_t num_qo_heads,
-    const uint32_t page_size, bool enable_cuda_graph, cudaStream_t stream) {
+    const uint32_t page_size, bool enable_cuda_graph, gpuStream_t stream) {
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using IdType = typename AttentionVariant::IdType;
 
@@ -228,10 +228,10 @@ cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
     int num_blocks_per_sm = 0;
     int num_sm = 0;
     int dev_id = 0;
-    FLASHINFER_CUDA_CALL(cudaGetDevice(&dev_id));
-    FLASHINFER_CUDA_CALL(cudaDeviceGetAttribute(&num_sm, cudaDevAttrMultiProcessorCount, dev_id));
-    FLASHINFER_CUDA_CALL(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
-                                                                       num_threads, smem_size));
+    FLASHINFER_CUDA_CALL(gpuGetDevice(&dev_id));
+    FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sm, gpuDevAttrMultiProcessorCount, dev_id));
+    FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
+                                                                      num_threads, smem_size));
     max_grid_size = num_blocks_per_sm * num_sm;
     if (batch_size * gdy >= max_grid_size) {
       split_kv = false;
@@ -259,7 +259,7 @@ cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
       }
     }
 
-    return cudaSuccess;
+    return gpuSuccess;
   });
 }
 

@@ -1045,9 +1045,9 @@ __global__ void BatchDecodeWithPagedKVCacheKernelMLA(typename AttentionVariant::
 }
 
 template <uint32_t HEAD_DIM_CKV, uint32_t HEAD_DIM_KPE, typename AttentionVariant>
-cudaError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::ParamsT params,
-                                                     typename AttentionVariant::DTypeO* tmp_v,
-                                                     float* tmp_s, cudaStream_t stream) {
+gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::ParamsT params,
+                                                    typename AttentionVariant::DTypeO* tmp_v,
+                                                    float* tmp_s, gpuStream_t stream) {
   using DTypeQ = typename AttentionVariant::DTypeQ;
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using DTypeO = typename AttentionVariant::DTypeO;
@@ -1076,7 +1076,7 @@ cudaError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::
         BatchDecodeWithPagedKVCacheKernelMLA<NUM_STAGES_SMEM, vec_size_ckv, vec_size_kpe, bdx, bdy,
                                              bdz, tile_size_qo_heads, AttentionVariant>;
     FLASHINFER_CUDA_CALL(
-        cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size));
+        gpuFuncSetAttribute(kernel, gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
 
     if (tmp_v == nullptr) {
       // do not use partition-kv kernel
@@ -1084,7 +1084,7 @@ cudaError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::
       dim3 nthrs(bdx, bdy, bdz);
       params.partition_kv = false;
       void* args[] = {(void*)&params};
-      FLASHINFER_CUDA_CALL(cudaLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
+      FLASHINFER_CUDA_CALL(gpuLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
     } else {
       // use partition-kv kernel
       params.partition_kv = true;
@@ -1095,7 +1095,7 @@ cudaError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::
       void* args[] = {(void*)&params};
       dim3 nblks(padded_batch_size, gdy);
       dim3 nthrs(bdx, bdy, bdz);
-      FLASHINFER_CUDA_CALL(cudaLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
+      FLASHINFER_CUDA_CALL(gpuLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
       FLASHINFER_CUDA_CALL(VariableLengthMergeStates(tmp_v, tmp_s, params.o_indptr, o, lse,
                                                      params.paged_kv.batch_size, nullptr,
                                                      num_qo_heads, HEAD_DIM_CKV, stream));
