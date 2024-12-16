@@ -16,6 +16,7 @@
 #include <flashinfer/attention/decode_params.cuh>
 #include <flashinfer/attention/scheduler.cuh>
 #include <flashinfer/attention/variants.cuh>
+#include <flashinfer/gpu_defines_cuda_hip.h>
 #include <optional>
 
 #include "aot_extension_utils.h"
@@ -23,9 +24,9 @@
 namespace flashinfer {
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
-cudaError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                                  typename AttentionVariant::DTypeO* tmp_v,
-                                                  float* tmp_s, cudaStream_t stream);
+gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                                 typename AttentionVariant::DTypeO* tmp_v,
+                                                 float* tmp_s, gpuStream_t stream);
 
 }  // namespace flashinfer
 
@@ -50,7 +51,7 @@ std::vector<int64_t> BatchDecodeWithPagedKVCachePlan(
   auto q_scalar_type = empty_q_data.scalar_type();
   auto kv_scalar_type = empty_kv_data.scalar_type();
 
-  cudaStream_t stream = reinterpret_cast<cudaStream_t>(cuda_stream);
+  cudaStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
   DISPATCH_PYTORCH_QKV_DTYPE_TO_CTYPE(q_scalar_type, kv_scalar_type, q_type, kv_type, [&] {
     using DTypeQ = q_type;
     using DTypeKV = kv_type;
@@ -73,8 +74,8 @@ std::vector<int64_t> BatchDecodeWithPagedKVCachePlan(
               batch_size, num_qo_heads, page_size, enable_cuda_graph,
               /*stream=*/stream, work_estimation_func);
 
-          TORCH_CHECK(status == cudaSuccess, "BatchDecodeWithPagedKVCache failed with error ",
-                      cudaGetErrorString(status));
+          TORCH_CHECK(status == gpuSuccess, "BatchDecodeWithPagedKVCache failed with error ",
+                      gpuGetErrorString(status));
           return true;
         });
       });
@@ -137,7 +138,7 @@ void BatchDecodeWithPagedKVCacheRun(
   TORCH_CHECK(k_strides == v_strides, "k/v strides must be identical");
   kv_cache_strides = k_strides.data();
 
-  cudaStream_t stream = reinterpret_cast<cudaStream_t>(cuda_stream);
+  gpuStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
 
   DISPATCH_PYTORCH_QKV_DTYPE_TO_CTYPE(q_scalar_type, kv_scalar_type, q_type, kv_type, [&] {
     using DTypeQ = q_type;
@@ -183,12 +184,12 @@ void BatchDecodeWithPagedKVCacheRun(
         }
         params.padded_batch_size = plan_info.padded_batch_size;
 
-        cudaError_t status =
+        gpuError_t status =
             flashinfer::BatchDecodeWithPagedKVCacheDispatched<HEAD_DIM, POS_ENCODING_MODE,
                                                               AttentionVariant>(
                 params, tmp_v, tmp_s, /*stream=*/stream);
-        TORCH_CHECK(status == cudaSuccess, "BatchDecodeWithPagedKVCache failed with error ",
-                    cudaGetErrorString(status));
+        TORCH_CHECK(status == gpuSuccess, "BatchDecodeWithPagedKVCache failed with error ",
+                    gpuGetErrorString(status));
         return true;
       });
     });

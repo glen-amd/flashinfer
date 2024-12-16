@@ -24,14 +24,15 @@
 #include "flashinfer/attention/scheduler.cuh"
 #include "flashinfer/exception.h"
 #include "flashinfer/layout.cuh"
+#include "flashinfer/gpu_defines_cuda_hip"
 #include "utils.h"
 
 namespace flashinfer {
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
-cudaError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                                  typename AttentionVariant::DTypeO* tmp_v,
-                                                  float* tmp_s, cudaStream_t stream);
+gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                                 typename AttentionVariant::DTypeO* tmp_v,
+                                                 float* tmp_s, gpuStream_t stream);
 
 template <uint32_t HEAD_DIM_CKV, uint32_t HEAD_DIM_KPE, typename AttentionVariant>
 cudaError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::ParamsT params,
@@ -42,10 +43,10 @@ class BatchDecodeHandler {
  public:
   template <uint32_t GROUP_SIZE, uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE,
             typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-  cudaError_t PlanDispatched(void* float_buffer, size_t float_workspace_size_in_bytes,
-                             void* int_buffer, size_t int_workspace_size_in_bytes, IdType* indptr_h,
-                             IdType* last_page_len_h, uint32_t batch_size, uint32_t num_qo_heads,
-                             uint32_t page_size) {
+  gpuError_t PlanDispatched(void* float_buffer, size_t float_workspace_size_in_bytes,
+                            void* int_buffer, size_t int_workspace_size_in_bytes, IdType* indptr_h,
+                            IdType* last_page_len_h, uint32_t batch_size, uint32_t num_qo_heads,
+                            uint32_t page_size) {
     int_buffer_ = int_buffer;
     float_buffer_ = float_buffer;
     using ParamsT = BatchDecodeParams<DTypeQ, DTypeKV, DTypeO, IdType>;
@@ -545,12 +546,12 @@ cudaError_t SingleDecodeWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* o
  * \param stream The CUDA stream.
  */
 template <typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-cudaError_t BatchDecodeWithPagedKVCacheWrapper(
+gpuError_t BatchDecodeWithPagedKVCacheWrapper(
     BatchDecodeHandler* handler, DTypeQ* q, IdType* q_offset, paged_kv_t<DTypeKV, IdType> paged_kv,
     DTypeO* o, float* lse, uint32_t num_qo_heads,
     PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
     std::optional<float> maybe_sm_scale = std::nullopt, float rope_scale = 1.f,
-    float rope_theta = 1e4, cudaStream_t stream = nullptr) {
+    float rope_theta = 1e4, gpuStream_t stream = nullptr) {
   float sm_scale = maybe_sm_scale.value_or(1.f / std::sqrt(float(paged_kv.head_dim)));
   const uint32_t num_kv_heads = paged_kv.num_heads;
   if (num_qo_heads % num_kv_heads != 0) {
@@ -582,16 +583,16 @@ cudaError_t BatchDecodeWithPagedKVCacheWrapper(
         return BatchDecodeWithPagedKVCacheDispatched<HEAD_DIM, POS_ENCODING_MODE, AttentionVariant>(
             params, handler->GetTmpV<DTypeO>(), handler->GetTmpS(), stream);
       })});
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-cudaError_t BatchDecodeHandlerPlan(BatchDecodeHandler* handler, void* float_buffer,
-                                   size_t float_workspace_size_in_bytes, void* int_buffer,
-                                   size_t int_workspace_size_in_bytes, IdType* indptr_h,
-                                   IdType* last_page_len_h, uint32_t batch_size,
-                                   uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t head_dim,
-                                   uint32_t page_size, PosEncodingMode pos_encoding_mode) {
+gpuError_t BatchDecodeHandlerPlan(BatchDecodeHandler* handler, void* float_buffer,
+                                  size_t float_workspace_size_in_bytes, void* int_buffer,
+                                  size_t int_workspace_size_in_bytes, IdType* indptr_h,
+                                  IdType* last_page_len_h, uint32_t batch_size,
+                                  uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t head_dim,
+                                  uint32_t page_size, PosEncodingMode pos_encoding_mode) {
   if (num_qo_heads % num_kv_heads != 0) {
     std::ostringstream err_msg;
     err_msg << "num_qo_heads " << num_qo_heads << " should be divisible by num_kv_heads "

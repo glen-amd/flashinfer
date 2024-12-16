@@ -39,7 +39,7 @@
 #include "../vec_dtypes.cuh"
 #include "cascade.cuh"
 #include "state.cuh"
-#include "../gpu_defines_cuda_hip.h
+#include "../gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 
@@ -721,7 +721,7 @@ cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT
 }
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
-cudaError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
+gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
                                                   typename AttentionVariant::DTypeO* tmp_v,
                                                   float* tmp_s, gpuStream_t stream) {
   using DTypeQ = typename AttentionVariant::DTypeQ;
@@ -784,7 +784,7 @@ cudaError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::Par
       }
     });
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <uint32_t vec_size_ckv, uint32_t vec_size_kpe, uint32_t bdx, uint32_t tile_size,

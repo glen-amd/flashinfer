@@ -32,6 +32,7 @@
 #include "../allocator.h"
 #include "../pos_enc.cuh"
 #include "../utils.cuh"
+#include "../gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 
@@ -133,11 +134,11 @@ inline auto PrefillBinarySearchKVChunkSize(const bool enable_cuda_graph,
  */
 template <uint32_t GROUP_SIZE, uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE,
           typename AttentionVariant>
-inline cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
+inline gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     bool& split_kv, uint32_t& max_grid_size, uint32_t& max_num_pages_per_batch,
     uint32_t& new_batch_size, uint32_t& gdy, uint32_t batch_size,
     typename AttentionVariant::IdType* kv_indptr_h, const uint32_t num_qo_heads,
-    const uint32_t page_size, bool enable_cuda_graph, cudaStream_t stream) {
+    const uint32_t page_size, bool enable_cuda_graph, gpuStream_t stream) {
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using IdType = typename AttentionVariant::IdType;
   constexpr uint32_t vec_size = std::max(16UL / sizeof(DTypeKV), HEAD_DIM / 32UL);
@@ -161,10 +162,10 @@ inline cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     int num_blocks_per_sm = 0;
     int num_sm = 0;
     int dev_id = 0;
-    FLASHINFER_CUDA_CALL(cudaGetDevice(&dev_id));
-    FLASHINFER_CUDA_CALL(cudaDeviceGetAttribute(&num_sm, cudaDevAttrMultiProcessorCount, dev_id));
-    FLASHINFER_CUDA_CALL(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
-                                                                       num_threads, smem_size));
+    FLASHINFER_CUDA_CALL(gpuGetDevice(&dev_id));
+    FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sm, gpuDevAttrMultiProcessorCount, dev_id));
+    FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
+                                                                      num_threads, smem_size));
     max_grid_size = num_blocks_per_sm * num_sm;
     if (batch_size * gdy >= max_grid_size) {
       split_kv = false;
@@ -191,7 +192,7 @@ inline cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
         split_kv = true;
       }
     }
-    return cudaSuccess;
+    return gpuSuccess;
   })
 }
 
@@ -350,12 +351,12 @@ struct DecodePlanInfo {
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant,
           typename WorkEstimationFunc>
-inline cudaError_t DecodePlan(void* float_buffer, size_t float_workspace_size_in_bytes,
-                              void* int_buffer, void* page_locked_int_buffer,
-                              size_t int_workspace_size_in_bytes, DecodePlanInfo& plan_info,
-                              typename AttentionVariant::IdType* indptr_h, uint32_t batch_size,
-                              uint32_t num_qo_heads, uint32_t page_size, bool enable_cuda_graph,
-                              cudaStream_t stream, WorkEstimationFunc work_estimation_func) {
+inline gpuError_t DecodePlan(void* float_buffer, size_t float_workspace_size_in_bytes,
+                             void* int_buffer, void* page_locked_int_buffer,
+                             size_t int_workspace_size_in_bytes, DecodePlanInfo& plan_info,
+                             typename AttentionVariant::IdType* indptr_h, uint32_t batch_size,
+                             uint32_t num_qo_heads, uint32_t page_size, bool enable_cuda_graph,
+                             gpuStream_t stream, WorkEstimationFunc work_estimation_func) {
   using DTypeO = typename AttentionVariant::DTypeO;
   using IdType = typename AttentionVariant::IdType;
   bool split_kv;
@@ -414,9 +415,9 @@ inline cudaError_t DecodePlan(void* float_buffer, size_t float_workspace_size_in
 
   size_t num_bytes_to_copy = int_allocator.num_allocated_bytes();
 
-  FLASHINFER_CUDA_CALL(cudaMemcpyAsync(int_buffer, page_locked_int_buffer, num_bytes_to_copy,
-                                       cudaMemcpyHostToDevice, stream));
-  return cudaSuccess;
+  FLASHINFER_CUDA_CALL(gpuMemcpyAsync(int_buffer, page_locked_int_buffer, num_bytes_to_copy,
+                                      gpuMemcpyHostToDevice, stream));
+  return gpuSuccess;
 }
 
 inline uint32_t DetermineCtaTileQ(int64_t avg_packed_qo_len, uint32_t head_dim) {
