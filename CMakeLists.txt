@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 3.23.1)
-project(flashinfer CUDA CXX)
+project(flashinfer CUDA HIP CXX)
 
 include(cmake/utils/Utils.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
+# CMake version >= 3.21
+set(CMAKE_HIP_STANDARD 17)
+
+# CMake version >= 3.28
+# If not specified, a default is computed via `hipconfig --platform`.
+set(CMAKE_HIP_PLATFORM "amd")
 
 if(EXISTS ${CMAKE_BINARY_DIR}/config.cmake)
   include(${CMAKE_BINARY_DIR}/config.cmake)
@@ -72,6 +78,14 @@ else(DEFINED FLASHINFER_CUDA_ARCHITECTURES)
   message(STATUS "CMAKE_CUDA_ARCHITECTURES is ${CMAKE_CUDA_ARCHITECTURES}")
 endif(DEFINED FLASHINFER_CUDA_ARCHITECTURES)
 
+if(DEFINED FLASHINFER_HIP_ARCHITECTURES)
+  message(
+    STATUS "CMAKE_HIP_ARCHITECTURES set to ${FLASHINFER_HIP_ARCHITECTURES}.")
+  set(CMAKE_HIP_ARCHITECTURES ${FLASHINFER_HIP_ARCHITECTURES})
+else(DEFINED FLASHINFER_HIP_ARCHITECTURES)
+  message(STATUS "CMAKE_HIP_ARCHITECTURES is ${CMAKE_HIP_ARCHITECTURES}")
+endif(DEFINED FLASHINFER_HIP_ARCHITECTURES)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 if(FLASHINFER_PREFILL
    OR FLASHINFER_DECODE
@@ -79,7 +93,7 @@ if(FLASHINFER_PREFILL
    OR FLASHINFER_CASCADE
    OR FLASHINFER_SAMPLING
    OR FLASHINFER_NORM)
-  message(STATUS "NVBench and GoogleTest enabled")
+ message(STATUS "NVBench, HIPBench and GoogleTest enabled")
   add_subdirectory(3rdparty/nvbench)
   if(FLASHINFER_DISTRIBUTED)
     add_subdirectory(3rdparty/mscclpp)

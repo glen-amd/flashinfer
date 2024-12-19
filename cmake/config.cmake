@@ -41,3 +41,5 @@ set(FLASHINFER_GEN_MASK_MODES 0 1 2)
 # So it's recommended to set it to a specific value if you know the architecture
 # of the target GPU. Example: set(FLASHINFER_CUDA_ARCHITECTURES 80)
 set(FLASHINFER_CUDA_ARCHITECTURES native)
+# https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
+set(FLASHINFER_HIP_ARCHITECTURES "gfx908;gfx90a;gfx942")
