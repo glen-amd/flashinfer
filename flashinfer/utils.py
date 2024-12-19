@@ -250,6 +250,14 @@ else:
         return torch.library.register_fake(name, fn)
 
 
+def check_hip_availability() -> bool:
+    return hasattr(torch, "cuda") and torch.cuda.is_available() and torch.version.hip
+
+
+def check_cuda_availability() -> bool:
+    return hasattr(torch, "cuda") and torch.cuda.is_available() and torch.version.cuda
+
+
 def get_cuda_stream(device: torch.device) -> int:
     return torch.cuda.current_stream(device).cuda_stream
 

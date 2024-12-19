@@ -129,9 +129,21 @@ if enable_aot:
     generate_build_meta(aot_build_meta)
 
     if enable_bf16:
-        torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
+        from flashinfer.utils import check_hip_availability, check_cuda_availability
+        if check_cuda_availability():
+            torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
+        elif check_hip_availability():
+            # FIXME
+            torch_cpp_ext.COMMON_HIP_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
+            torch_cpp_ext.COMMON_HIPCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
     if enable_fp8:
-        torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
+        from flashinfer.utils import check_hip_availability, check_cuda_availability
+        if check_cuda_availability():
+            torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
+        elif check_hip_availability():
+            # FIXME
+            torch_cpp_ext.COMMON_HIP_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
+            torch_cpp_ext.COMMON_HIPCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
 
     for flag in [
         "-D__CUDA_NO_HALF_OPERATORS__",

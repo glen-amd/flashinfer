@@ -21,6 +21,7 @@ from typing import Any, Callable, List, Tuple
 import torch
 
 from .core import logger
+from flashinfer.utils import check_hip_availability
 
 
 def write_if_different(path: pathlib.Path, content: str) -> None:
@@ -65,8 +66,8 @@ def parallel_load_modules(
 dtype_map = {
     torch.float16: "half",
     torch.bfloat16: "nv_bfloat16",
-    torch.float8_e4m3fn: "__nv_fp8_e4m3",
-    torch.float8_e5m2: "__nv_fp8_e5m2",
+    torch.float8_e4m3fn: "__hip_fp8_e4m3_fnuz" if check_hip_availability() else "__nv_fp8_e4m3",
+    torch.float8_e5m2: "__hip_fp8_e5m2_fnuz" if check_hip_availability() else "__nv_fp8_e5m2",
     torch.int8: "int8_t",
     torch.uint8: "uint8_t",
     torch.int32: "int32_t",
