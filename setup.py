@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+import shutil
 
 import setuptools
 
@@ -99,6 +100,22 @@ if enable_aot:
             nvcc = os.path.join(torch_cpp_ext.CUDA_HOME, "bin/nvcc")
         txt = subprocess.check_output([nvcc, "--version"], text=True)
         return Version(re.findall(r"release (\d+\.\d+),", txt)[0])
+
+    def get_hip_version() -> Version:
+        if torch_cpp_ext.ROCM_VERSION is None:
+            hipcc_loc = shutil.which('hipcc')
+            if hipcc_loc is not None:
+                # HIP version: 5.2.0
+                # Clang version: 13.0.0 (ROCm Clang 13.0.0)
+                # Build configuration: Release
+                txt = subprocess.check_output([hipcc_loc, "--version"], text=True)
+                return Version(re.findall(r"HIP version: (\d+\.\d+),", txt)[0])
+            else:
+                # TODO:
+                # torch_cpp_ext.ROCM_HOME + "bin/hipcc" or "hip/bin/hipcc"
+                pass
+        else:
+            return Version(str(torch_cpp_ext.ROCM_VERSION[0]) + str(torch_cpp_ext.ROCM_VERSION[1]))
 
     class NinjaBuildExtension(torch_cpp_ext.BuildExtension):
         def __init__(self, *args, **kwargs) -> None:

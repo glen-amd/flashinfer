@@ -13,6 +13,7 @@ from .env import FLASHINFER_GEN_SRC_DIR as FLASHINFER_GEN_SRC_DIR
 from .env import FLASHINFER_INCLUDE_DIR as FLASHINFER_INCLUDE_DIR
 from .env import FLASHINFER_JIT_DIR as FLASHINFER_JIT_DIR
 from .env import FLASHINFER_WORKSPACE_DIR as FLASHINFER_WORKSPACE_DIR
+from flashinfer.utils import check_hip_availability
 
 os.makedirs(FLASHINFER_WORKSPACE_DIR, exist_ok=True)
 os.makedirs(FLASHINFER_CSRC_DIR, exist_ok=True)
@@ -52,6 +53,12 @@ def check_cuda_arch():
             raise RuntimeError("FlashInfer requires sm75+")
 
 
+# TODO
+def check_rocm_arch():
+    for rocm_arch_flags in torch_cpp_ext._get_rocm_arch_flags():
+        pass
+
+
 def clear_cache_dir():
     if os.path.exists(FLASHINFER_JIT_DIR):
         for file in os.listdir(FLASHINFER_JIT_DIR):
@@ -72,7 +79,30 @@ def remove_unwanted_pytorch_nvcc_flags():
             pass
 
 
+# TODO
+def remove_unwanted_pytorch_hip_flags()
+    REMOVE_HIP_FLAGS = []
+    for flag in REMOVE_HIP_FLAGS:
+        try:
+            torch_cpp_ext.COMMON_HIP_FLAGS.remove(flag)
+        except ValueError:
+            pass
+
+
+# TODO
+def remove_unwanted_pytorch_hipcc_flags()
+    REMOVE_HIPCC_FLAGS = []
+    for flag in REMOVE_HIPCC_FLAGS:
+        try:
+            torch_cpp_ext.COMMON_HIPCC_FLAGS.remove(flag)
+        except ValueError:
+            pass
+
+
 remove_unwanted_pytorch_nvcc_flags()
+if check_hip_availability():
+    remove_unwanted_pytorch_hip_flags()
+    remove_unwanted_pytorch_hipcc_flags()
 
 
 def load_cuda_ops(
@@ -120,3 +150,16 @@ def load_cuda_ops(
         )
     logger.info(f"Finished loading JIT ops: {name}")
     return module
+
+
+# TODO
+def load_hip_ops(
+    name: str,
+    sources: List[Union[str, Path]],
+    extra_cflags: List[str] = [],
+    extra_cuda_cflags: List[str] = [],
+    extra_ldflags=None,
+    extra_include_paths=None,
+    verbose=False,
+):
+    pass

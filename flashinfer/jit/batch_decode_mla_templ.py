@@ -47,11 +47,11 @@ std::vector<int64_t> BatchDecodeWithPagedKVCachePlanMLA(
       int_workspace_buffer.size(0) * int_workspace_buffer.element_size();
 
   DecodePlanInfo plan_info;
-  cudaStream_t stream = reinterpret_cast<cudaStream_t>(cuda_stream);
+  cudaStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
 
   auto work_estimation_func =
       BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA<{{ head_dim_ckv }}, {{ head_dim_kpe }}, AttentionVariant>;
-  cudaError_t status = DecodePlan<{{ head_dim_ckv }}, flashinfer::PosEncodingMode::kRoPELlama, AttentionVariant>(
+  gpuError_t status = DecodePlan<{{ head_dim_ckv }}, flashinfer::PosEncodingMode::kRoPELlama, AttentionVariant>(
       static_cast<void*>(float_workspace_buffer.data_ptr()),
       float_workspace_size_in_bytes,
       static_cast<void*>(int_workspace_buffer.data_ptr()),
@@ -146,12 +146,12 @@ void BatchDecodeWithPagedKVCacheRunMLA(
   }
   params.padded_batch_size = plan_info.padded_batch_size;
 
-  cudaStream_t stream = reinterpret_cast<cudaStream_t>(cuda_stream);
-  cudaError_t status = BatchDecodeWithPagedKVCacheDispatchedMLA<
+  gpuStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
+  gpuError_t status = BatchDecodeWithPagedKVCacheDispatchedMLA<
       {{ head_dim_ckv }}, {{ head_dim_kpe }}, AttentionVariant>(
       params, tmp_v, tmp_s, /*stream=*/stream);
-  TORCH_CHECK(status == cudaSuccess, "BatchDecodeWithPagedKVCache failed with error ",
-              cudaGetErrorString(status));
+  TORCH_CHECK(status == gpuSuccess, "BatchDecodeWithPagedKVCache failed with error ",
+              gpuGetErrorString(status));
 }
 """,
     r"""#include "pytorch_extension_utils.h"
