@@ -92,6 +92,7 @@ if enable_aot:
     import torch
     import torch.utils.cpp_extension as torch_cpp_ext
     from packaging.version import Version
+    from flashinfer.utils import check_hip_availability, check_cuda_availability
 
     def get_cuda_version() -> Version:
         if torch_cpp_ext.CUDA_HOME is None:
@@ -104,16 +105,15 @@ if enable_aot:
     def get_hip_version() -> Version:
         if torch_cpp_ext.ROCM_VERSION is None:
             hipcc_loc = shutil.which('hipcc')
-            if hipcc_loc is not None:
-                # HIP version: 5.2.0
-                # Clang version: 13.0.0 (ROCm Clang 13.0.0)
-                # Build configuration: Release
-                txt = subprocess.check_output([hipcc_loc, "--version"], text=True)
-                return Version(re.findall(r"HIP version: (\d+\.\d+),", txt)[0])
-            else:
-                # TODO:
-                # torch_cpp_ext.ROCM_HOME + "bin/hipcc" or "hip/bin/hipcc"
-                pass
+            if hipcc_loc is None:
+                # FIXME
+                hipcc_loc = torch_cpp_ext.ROCM_HOME + "/bin/hipcc"
+                # hipcc_loc = torch_cpp_ext.ROCM_HOME + "/hip/bin/hipcc"
+            # HIP version: 5.2.0
+            # Clang version: 13.0.0 (ROCm Clang 13.0.0)
+            # Build configuration: Release
+            txt = subprocess.check_output([hipcc_loc, "--version"], text=True)
+            return Version(re.findall(r"HIP version: (\d+\.\d+),", txt)[0])
         else:
             return Version(str(torch_cpp_ext.ROCM_VERSION[0]) + str(torch_cpp_ext.ROCM_VERSION[1]))
 
@@ -132,7 +132,7 @@ if enable_aot:
         if arch < 75:
             raise RuntimeError("FlashInfer requires sm75+")
 
-    cuda_version = get_cuda_version()
+    cuda_version = get_hip_version() if check_hip_availability() else get_cuda_version()
     torch_version = Version(torch.__version__).base_version
     cmdclass["build_ext"] = NinjaBuildExtension
     install_requires = [f"torch == {torch_version}"]
@@ -146,7 +146,6 @@ if enable_aot:
     generate_build_meta(aot_build_meta)
 
     if enable_bf16:
-        from flashinfer.utils import check_hip_availability, check_cuda_availability
         if check_cuda_availability():
             torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
         elif check_hip_availability():
@@ -154,7 +153,6 @@ if enable_aot:
             torch_cpp_ext.COMMON_HIP_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
             torch_cpp_ext.COMMON_HIPCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
     if enable_fp8:
-        from flashinfer.utils import check_hip_availability, check_cuda_availability
         if check_cuda_availability():
             torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
         elif check_hip_availability():
@@ -191,6 +189,7 @@ if enable_aot:
         "-compress-all",
         "-use_fast_math",
     ]
+    # TODO: ROCm/HIP flags
     sm90a_flags = "-gencode arch=compute_90a,code=sm_90a".split()
     kernel_sources = [
         "csrc/bmm_fp8.cu",

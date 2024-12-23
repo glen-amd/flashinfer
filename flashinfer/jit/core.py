@@ -13,7 +13,7 @@ from .env import FLASHINFER_GEN_SRC_DIR as FLASHINFER_GEN_SRC_DIR
 from .env import FLASHINFER_INCLUDE_DIR as FLASHINFER_INCLUDE_DIR
 from .env import FLASHINFER_JIT_DIR as FLASHINFER_JIT_DIR
 from .env import FLASHINFER_WORKSPACE_DIR as FLASHINFER_WORKSPACE_DIR
-from flashinfer.utils import check_hip_availability
+from flashinfer.utils import check_hip_availability, check_cuda_availability
 
 os.makedirs(FLASHINFER_WORKSPACE_DIR, exist_ok=True)
 os.makedirs(FLASHINFER_CSRC_DIR, exist_ok=True)
@@ -115,7 +115,7 @@ def load_cuda_ops(
     verbose=False,
 ):
     cflags = ["-O3", "-Wno-switch-bool"]
-    cuda_cflags = [
+    cuda_cflags = [] if check_hip_availability() else [
         "-O3",
         "-std=c++17",
         "--threads",
@@ -127,14 +127,21 @@ def load_cuda_ops(
     cflags += extra_cflags
     cuda_cflags += extra_cuda_cflags
     logger.info(f"Loading JIT ops: {name}")
-    check_cuda_arch()
+    if check_cuda_availability():
+        check_cuda_arch()
+    elif check_hip_availability():
+        check_rocm_arch()
     build_directory = FLASHINFER_JIT_DIR / name
     os.makedirs(build_directory, exist_ok=True)
     if extra_include_paths is None:
         extra_include_paths = [
             FLASHINFER_INCLUDE_DIR,
             FLASHINFER_CSRC_DIR,
-        ] + CUTLASS_INCLUDE_DIRS
+        ]
+        if check_hip_availability():
+            extra_include_paths += []
+        elif check_cuda_availability():
+            extra_include_paths += CUTLASS_INCLUDE_DIRS
     lock = FileLock(FLASHINFER_JIT_DIR / f"{name}.lock", thread_local=False)
     with lock:
         module = torch_cpp_ext.load(
@@ -150,16 +157,3 @@ def load_cuda_ops(
         )
     logger.info(f"Finished loading JIT ops: {name}")
     return module
-
-
-# TODO
-def load_hip_ops(
-    name: str,
-    sources: List[Union[str, Path]],
-    extra_cflags: List[str] = [],
-    extra_cuda_cflags: List[str] = [],
-    extra_ldflags=None,
-    extra_include_paths=None,
-    verbose=False,
-):
-    pass
