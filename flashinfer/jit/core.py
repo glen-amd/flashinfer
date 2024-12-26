@@ -80,7 +80,7 @@ def remove_unwanted_pytorch_nvcc_flags():
 
 
 # TODO
-def remove_unwanted_pytorch_hip_flags()
+def remove_unwanted_pytorch_hip_flags():
     REMOVE_HIP_FLAGS = []
     for flag in REMOVE_HIP_FLAGS:
         try:
@@ -90,7 +90,7 @@ def remove_unwanted_pytorch_hip_flags()
 
 
 # TODO
-def remove_unwanted_pytorch_hipcc_flags()
+def remove_unwanted_pytorch_hipcc_flags():
     REMOVE_HIPCC_FLAGS = []
     for flag in REMOVE_HIPCC_FLAGS:
         try:
