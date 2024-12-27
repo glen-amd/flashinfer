@@ -232,7 +232,7 @@ if enable_aot:
         torch_cpp_ext.CUDAExtension(
             name="flashinfer._kernels",
             # sources=kernel_sources + decode_sources + prefill_sources,
-            sources=["csrc/batch_decode.cu"]
+            sources=["csrc/batch_decode.cu"],
             include_dirs=include_dirs,
             extra_compile_args={
                 "cxx": cxx_flags,

@@ -17,7 +17,7 @@
 #define FLASHINFER_PERMUTED_SMEM_CUH_
 
 #ifdef __HIPCC__
-#include <hipi/hip_bf16.h>
+#include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #else

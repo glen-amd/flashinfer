@@ -18,7 +18,7 @@
 
 #ifdef __HIPCC__
 #include <hip/hip_cooperative_groups.h>
-#include <hipi/hip_bf16.h>
+#include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
