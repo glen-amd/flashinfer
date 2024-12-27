@@ -126,13 +126,23 @@ if enable_aot:
 
             super().__init__(*args, **kwargs)
 
-    # cuda arch check for fp8 at the moment.
-    for cuda_arch_flags in torch_cpp_ext._get_cuda_arch_flags():
-        arch = int(re.search(r"compute_(\d+)", cuda_arch_flags).group(1))
-        if arch < 75:
-            raise RuntimeError("FlashInfer requires sm75+")
+    if check_hip_availability():
+        # TODO
+        # allowed_archs = ["native", "gfx90a", "gfx940", "gfx941", "gfx942"]
+        for rocm_arch_flags in torch_cpp_ext._get_rocm_arch_flags():
+            # arch = str(re.search(r"\-\-offload\-arch=(\w+)", rocm_arch_flags).group(1))
+            # if arch not in allowed_archs:
+                # raise RuntimeError("AMD ROCm archs mismatch")
+            pass
+        cuda_version = get_hip_version()
+    else:
+        # cuda arch check for fp8 at the moment.
+        for cuda_arch_flags in torch_cpp_ext._get_cuda_arch_flags():
+            arch = int(re.search(r"compute_(\d+)", cuda_arch_flags).group(1))
+            if arch < 75:
+                raise RuntimeError("FlashInfer requires sm75+")
+        cuda_version = get_cuda_version()
 
-    cuda_version = get_hip_version() if check_hip_availability() else get_cuda_version()
     torch_version = Version(torch.__version__).base_version
     cmdclass["build_ext"] = NinjaBuildExtension
     install_requires = [f"torch == {torch_version}"]
@@ -142,7 +152,10 @@ if enable_aot:
     aot_build_meta["cuda_minor"] = cuda_version.minor
     aot_build_meta["torch"] = torch_version
     aot_build_meta["python"] = platform.python_version()
-    aot_build_meta["TORCH_CUDA_ARCH_LIST"] = os.environ.get("TORCH_CUDA_ARCH_LIST")
+    if check_hip_availability():
+        aot_build_meta["PYTORCH_ROCM_ARCH"] = os.environ.get("PYTORCH_ROCM_ARCH")
+    else:
+        aot_build_meta["TORCH_CUDA_ARCH_LIST"] = os.environ.get("TORCH_CUDA_ARCH_LIST")
     generate_build_meta(aot_build_meta)
 
     if enable_bf16:
@@ -189,8 +202,9 @@ if enable_aot:
         "-compress-all",
         "-use_fast_math",
     ]
-    # TODO: ROCm/HIP flags
     sm90a_flags = "-gencode arch=compute_90a,code=sm_90a".split()
+    # TODO: ROCm/HIP flags
+    hipcc_flags = []
     kernel_sources = [
         "csrc/bmm_fp8.cu",
         "csrc/cascade.cu",
@@ -217,16 +231,19 @@ if enable_aot:
     ext_modules = [
         torch_cpp_ext.CUDAExtension(
             name="flashinfer._kernels",
-            sources=kernel_sources + decode_sources + prefill_sources,
+            # sources=kernel_sources + decode_sources + prefill_sources,
+            sources=["csrc/batch_decode.cu"]
             include_dirs=include_dirs,
             extra_compile_args={
                 "cxx": cxx_flags,
-                "nvcc": nvcc_flags,
+                # "nvcc": nvcc_flags,
+                "nvcc": hipcc_flags,
             },
         ),
         torch_cpp_ext.CUDAExtension(
             name="flashinfer._kernels_sm90",
-            sources=kernel_sm90_sources,
+            # sources=kernel_sm90_sources,
+            sources=[],
             include_dirs=include_dirs,
             extra_compile_args={
                 "cxx": cxx_flags,

@@ -51,7 +51,7 @@ std::vector<int64_t> BatchDecodeWithPagedKVCachePlan(
   auto q_scalar_type = empty_q_data.scalar_type();
   auto kv_scalar_type = empty_kv_data.scalar_type();
 
-  cudaStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
+  gpuStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
   DISPATCH_PYTORCH_QKV_DTYPE_TO_CTYPE(q_scalar_type, kv_scalar_type, q_type, kv_type, [&] {
     using DTypeQ = q_type;
     using DTypeKV = kv_type;
@@ -66,7 +66,7 @@ std::vector<int64_t> BatchDecodeWithPagedKVCachePlan(
         DISPATCH_GQA_GROUP_SIZE(num_qo_heads / num_kv_heads, GROUP_SIZE, {
           auto work_estimation_func = BatchDecodeWithPagedKVCacheWorkEstimationDispatched<
               GROUP_SIZE, HEAD_DIM, POS_ENCODING_MODE, AttentionVariant>;
-          cudaError_t status = DecodePlan<HEAD_DIM, POS_ENCODING_MODE, AttentionVariant>(
+          gpuError_t status = DecodePlan<HEAD_DIM, POS_ENCODING_MODE, AttentionVariant>(
               static_cast<void*>(float_workspace_buffer.data_ptr()), float_workspace_size_in_bytes,
               static_cast<void*>(int_workspace_buffer.data_ptr()),
               static_cast<void*>(page_locked_int_workspace_buffer.data_ptr()),

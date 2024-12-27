@@ -55,7 +55,12 @@ def check_cuda_arch():
 
 # TODO
 def check_rocm_arch():
+    # TODO
+    # allowed_archs = ["native", "gfx90a", "gfx940", "gfx941", "gfx942"]
     for rocm_arch_flags in torch_cpp_ext._get_rocm_arch_flags():
+        # arch = str(re.search(r"\-\-offload\-arch=(\w+)", rocm_arch_flags).group(1))
+        # if arch not in allowed_archs:
+            # raise RuntimeError("AMD ROCm archs mismatch")
         pass
 
 
