@@ -1,5 +1,7 @@
 /**
- * NB This approach is NOT flexiable, NOT adaptive.
+ * NB This approach is borrowed and extended from the 3rd-party Eigen implementation in PyTorch.
+ * It is NOT smart, NOT extensible, NOT flexiable, NOT adaptive,
+ * but straightforward and good for early iterations of development.
  */
 #ifndef FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 #define FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
@@ -39,6 +41,18 @@
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor cudaOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize cudaFuncAttributeMaxDynamicSharedMemorySize
 #define gpuDevAttrMultiProcessorCount cudaDevAttrMultiProcessorCount
+// float8 Precision Device types
+#define __gpu_fp8_e4m3 __nv_fp8_e4m3
+#define __gpu_fp8_e5m2 __nv_fp8_e5m2
+#define __gpu_nv_fp8x2_e4m3 __nv_fp8x2_e4m3
+#define __gpu_nv_fp8x2_e5m2 __nv_fp8x2_e5m2
+#define __gpu_fp8x4_storage_t __nv_fp8x4_storage_t
+#define __gpu_fp8x4_e4m3 __nv_fp8x4_e4m3
+#define __gpu_fp8x4_e5m2 __nv_fp8x4_e5m2
+// Bfloat16 Precision Device types
+#define gpu_bfloat16 nv_bfloat16
+#define __gpu_bfloat16 __nv_bfloat16
+#define __gpu_bfloat162 __nv_bfloat162
 
 #elif defined(__HIPCC__)
 
@@ -75,6 +89,18 @@
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize hipFuncAttributeMaxDynamicSharedMemorySize
 #define gpuDevAttrMultiProcessorCount hipDevAttrMultiProcessorCount
+// float8 Precision Device types
+#define __gpu_fp8_e4m3 __hip_fp8_e4m3_fnuz
+#define __gpu_fp8_e5m2 __hip_fp8_e5m2_fnuz
+#define __gpu_nv_fp8x2_e4m3 __hip_fp8x2_e4m3_fnuz
+#define __gpu_nv_fp8x2_e5m2 __hip_fp8x2_e5m2_fnuz
+#define __gpu_fp8x4_storage_t __hip_fp8x4_storage_t
+#define __gpu_fp8x4_e4m3 __hip_fp8x4_e4m3_fnuz
+#define __gpu_fp8x4_e5m2 __hip_fp8x4_e5m2_fnuz
+// Bfloat16 Precision Device types
+#define gpu_bfloat16 hip_bfloat16
+#define __gpu_bfloat16 __hip_bfloat16
+#define __gpu_bfloat162 __hip_bfloat162
 
 #endif  // __CUDACC__ or __HIPCC__
 

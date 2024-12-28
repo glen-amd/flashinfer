@@ -21,7 +21,7 @@
 #include <cuda_fp8.h>
 #include <cuda_runtime.h>
 #elif defined(__HIPCC__)
-#include <hipi/hip_bf16.h>
+#include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
