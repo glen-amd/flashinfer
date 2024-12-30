@@ -16,6 +16,8 @@
 #ifndef VEC_DTYPES_CUH_
 #define VEC_DTYPES_CUH_
 
+#include "./gpu_defines_cuda_hip.h"
+
 #ifdef __HIPCC__
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
@@ -27,8 +29,6 @@
 #include <cuda_fp8.h>
 #include <cuda_runtime.h>
 #endif
-
-#include "./gpu_defines_cuda_hip.h"
 
 #include <type_traits>
 
@@ -103,7 +103,8 @@ struct vec_cast<float, half> {
   template <size_t vec_size>
   FLASHINFER_INLINE static void cast(float* dst, const half* src) {
     if constexpr (vec_size == 1) {
-      dst[0] = (float)src[0];
+      // dst[0] = (float)src[0];
+      dst[0] = __half2float(src[0]);
     } else {
 #pragma unroll
       for (size_t i = 0; i < vec_size / 2; ++i) {

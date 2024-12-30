@@ -16,6 +16,8 @@
 #ifndef FLASHINFER_UTILS_CUH_
 #define FLASHINFER_UTILS_CUH_
 
+#include "./gpu_defines_cuda_hip.h"
+
 #ifdef __HIPCC__
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
@@ -34,7 +36,6 @@
 #include <vector>
 
 #include "exception.h"
-#include "gpu_defines_cuda_hip.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)

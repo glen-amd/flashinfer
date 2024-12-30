@@ -16,6 +16,8 @@
 #ifndef FLASHINFER_DECODE_CUH_
 #define FLASHINFER_DECODE_CUH_
 
+#include "../gpu_defines_cuda_hip.h"
+
 #ifdef __HIPCC__
 #include <hip/hip_cooperative_groups.h>
 #include <hip/hip_bf16.h>
@@ -39,7 +41,6 @@
 #include "../vec_dtypes.cuh"
 #include "cascade.cuh"
 #include "state.cuh"
-#include "../gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 

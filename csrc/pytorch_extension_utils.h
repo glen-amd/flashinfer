@@ -16,17 +16,17 @@
 #pragma once
 
 // NOTE(Zihao): only include minimal headers to accelerate compilation
-#ifdef __CUDACC__
-#include <cuda_bf16.h>
-#include <cuda_fp16.h>
-#include <cuda_fp8.h>
-#elif defined(__HIPCC__)
+#include <flashinfer/gpu_defines_cuda_hip.h>
+#ifdef __HIPCC__
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
+#else
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+#include <cuda_fp8.h>
 #endif
 #include <torch/csrc/utils/pybind.h>
-#include <flashinfer/gpu_defines_cuda_hip.h>
 
 #ifdef FLASHINFER_ENABLE_BF16
 #define DISPATCH_PYTORCH_DTYPE_TO_CTYPE_FP16(pytorch_dtype, c_type, ...)                 \

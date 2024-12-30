@@ -6,55 +6,8 @@
 #ifndef FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 #define FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 
-#ifdef __CUDACC__
-
-#define gpuStream_t cudaStream_t
-#define gpuDeviceProp_t cudaDeviceProp
-#define gpuError_t cudaError_t
-#define gpuSuccess cudaSuccess
-#define gpuErrorNotReady cudaErrorNotReady
-#define gpuGetDeviceCount cudaGetDeviceCount
-#define gpuGetLastError cudaGetLastError
-#define gpuPeekAtLastError cudaPeekAtLastError
-#define gpuGetErrorName cudaGetErrorName
-#define gpuGetErrorString cudaGetErrorString
-#define gpuGetDeviceProperties cudaGetDeviceProperties
-#define gpuStreamDefault cudaStreamDefault
-#define gpuGetDevice cudaGetDevice
-#define gpuSetDevice cudaSetDevice
-#define gpuMalloc cudaMalloc
-#define gpuFree cudaFree
-#define gpuMemsetAsync cudaMemsetAsync
-#define gpuMemcpyAsync cudaMemcpyAsync
-#define gpuMemcpyDeviceToDevice cudaMemcpyDeviceToDevice
-#define gpuMemcpyDeviceToHost cudaMemcpyDeviceToHost
-#define gpuMemcpyHostToDevice cudaMemcpyHostToDevice
-#define gpuStreamQuery cudaStreamQuery
-#define gpuSharedMemConfig cudaSharedMemConfig
-#define gpuDeviceSetSharedMemConfig cudaDeviceSetSharedMemConfig
-#define gpuStreamSynchronize cudaStreamSynchronize
-#define gpuDeviceSynchronize cudaDeviceSynchronize
-#define gpuMemcpy cudaMemcpy
-#define gpuDeviceGetAttribute cudaDeviceGetAttribute
-#define gpuFuncSetAttribute cudaFuncSetAttribute
-#define gpuLaunchKernel cudaLaunchKernel
-#define gpuOccupancyMaxActiveBlocksPerMultiprocessor cudaOccupancyMaxActiveBlocksPerMultiprocessor
-#define gpuFuncAttributeMaxDynamicSharedMemorySize cudaFuncAttributeMaxDynamicSharedMemorySize
-#define gpuDevAttrMultiProcessorCount cudaDevAttrMultiProcessorCount
-// float8 Precision Device types
-#define __gpu_fp8_e4m3 __nv_fp8_e4m3
-#define __gpu_fp8_e5m2 __nv_fp8_e5m2
-#define __gpu_nv_fp8x2_e4m3 __nv_fp8x2_e4m3
-#define __gpu_nv_fp8x2_e5m2 __nv_fp8x2_e5m2
-#define __gpu_fp8x4_storage_t __nv_fp8x4_storage_t
-#define __gpu_fp8x4_e4m3 __nv_fp8x4_e4m3
-#define __gpu_fp8x4_e5m2 __nv_fp8x4_e5m2
-// Bfloat16 Precision Device types
-#define gpu_bfloat16 nv_bfloat16
-#define __gpu_bfloat16 __nv_bfloat16
-#define __gpu_bfloat162 __nv_bfloat162
-
-#elif defined(__HIPCC__)
+// To workaround some unexpected HIPify behavior
+#ifdef __HIPCC__
 
 #define gpuStream_t hipStream_t
 #define gpuDeviceProp_t hipDeviceProp_t
@@ -101,6 +54,55 @@
 #define gpu_bfloat16 hip_bfloat16
 #define __gpu_bfloat16 __hip_bfloat16
 #define __gpu_bfloat162 __hip_bfloat162
+
+// #elif defined(__CUDACC__)
+#else
+
+#define gpuStream_t cudaStream_t
+#define gpuDeviceProp_t cudaDeviceProp
+#define gpuError_t cudaError_t
+#define gpuSuccess cudaSuccess
+#define gpuErrorNotReady cudaErrorNotReady
+#define gpuGetDeviceCount cudaGetDeviceCount
+#define gpuGetLastError cudaGetLastError
+#define gpuPeekAtLastError cudaPeekAtLastError
+#define gpuGetErrorName cudaGetErrorName
+#define gpuGetErrorString cudaGetErrorString
+#define gpuGetDeviceProperties cudaGetDeviceProperties
+#define gpuStreamDefault cudaStreamDefault
+#define gpuGetDevice cudaGetDevice
+#define gpuSetDevice cudaSetDevice
+#define gpuMalloc cudaMalloc
+#define gpuFree cudaFree
+#define gpuMemsetAsync cudaMemsetAsync
+#define gpuMemcpyAsync cudaMemcpyAsync
+#define gpuMemcpyDeviceToDevice cudaMemcpyDeviceToDevice
+#define gpuMemcpyDeviceToHost cudaMemcpyDeviceToHost
+#define gpuMemcpyHostToDevice cudaMemcpyHostToDevice
+#define gpuStreamQuery cudaStreamQuery
+#define gpuSharedMemConfig cudaSharedMemConfig
+#define gpuDeviceSetSharedMemConfig cudaDeviceSetSharedMemConfig
+#define gpuStreamSynchronize cudaStreamSynchronize
+#define gpuDeviceSynchronize cudaDeviceSynchronize
+#define gpuMemcpy cudaMemcpy
+#define gpuDeviceGetAttribute cudaDeviceGetAttribute
+#define gpuFuncSetAttribute cudaFuncSetAttribute
+#define gpuLaunchKernel cudaLaunchKernel
+#define gpuOccupancyMaxActiveBlocksPerMultiprocessor cudaOccupancyMaxActiveBlocksPerMultiprocessor
+#define gpuFuncAttributeMaxDynamicSharedMemorySize cudaFuncAttributeMaxDynamicSharedMemorySize
+#define gpuDevAttrMultiProcessorCount cudaDevAttrMultiProcessorCount
+// float8 Precision Device types
+#define __gpu_fp8_e4m3 __nv_fp8_e4m3
+#define __gpu_fp8_e5m2 __nv_fp8_e5m2
+#define __gpu_nv_fp8x2_e4m3 __nv_fp8x2_e4m3
+#define __gpu_nv_fp8x2_e5m2 __nv_fp8x2_e5m2
+#define __gpu_fp8x4_storage_t __nv_fp8x4_storage_t
+#define __gpu_fp8x4_e4m3 __nv_fp8x4_e4m3
+#define __gpu_fp8x4_e5m2 __nv_fp8x4_e5m2
+// Bfloat16 Precision Device types
+#define gpu_bfloat16 nv_bfloat16
+#define __gpu_bfloat16 __nv_bfloat16
+#define __gpu_bfloat162 __nv_bfloat162
 
 #endif  // __CUDACC__ or __HIPCC__
 

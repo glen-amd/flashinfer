@@ -16,6 +16,8 @@
 #ifndef FLASHINFER_ATTENTION_SCHEDULER_CUH_
 #define FLASHINFER_ATTENTION_SCHEDULER_CUH_
 
+#include "../gpu_defines_cuda_hip.h"
+
 #ifdef __HIPCC__
 #include <hip/hip_runtime_api.h>
 #else
@@ -32,7 +34,6 @@
 #include "../allocator.h"
 #include "../pos_enc.cuh"
 #include "../utils.cuh"
-#include "../gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 
