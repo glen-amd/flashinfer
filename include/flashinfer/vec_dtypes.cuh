@@ -32,6 +32,22 @@
 
 #include <type_traits>
 
+#ifdef __HIPCC__
+/*
+Hacky workaround for the error below:
+
+  /home/git_repos/glen-amd/flashinfer/include/flashinfer/attention/../vec_dtypes_hip.cuh:200:38: error: use of undeclared identifier '__float2bfloat162_rn'; did you mean '__float22bfloat162_rn'?
+    200 |       const gpu_bfloat162 bias_reg = __float2bfloat162_rn(*reinterpret_cast<const float*>(&BIAS));
+        |                                      ^~~~~~~~~~~~~~~~~~~~
+        |                                      __float22bfloat162_rn
+  /opt/rocm-6.3.1/lib/llvm/bin/../../../include/hip/amd_detail/amd_hip_bf16.h:574:45: note: '__float22bfloat162_rn' declared here
+    574 | __BF16_HOST_DEVICE_STATIC__ __hip_bfloat162 __float22bfloat162_rn(const float2 a) {
+*/
+__HOST_DEVICE__ inline __hip_bfloat162 __float2bfloat162_rn(const float a) {
+  return __hip_bfloat162{__float2bfloat16(a), __float2bfloat16(a)};
+}
+#endif
+
 namespace flashinfer {
 
 #if (!defined(__CUDA_ARCH__) || (__CUDA_ARCH__ >= 900))
@@ -176,9 +192,11 @@ __device__ void fast_dequant_f8f16x4(uint32_t* input, uint2* output) {
 
     constexpr int RIGHT_SHIFT = FP16_EXPONENT - FP8_EXPONENT;
     // Calculate MASK for extracting mantissa and exponent
-    constexpr int MASK1 = 0x80000000;
-    constexpr int MASK2 = MASK1 >> (FP8_EXPONENT + FP8_MANTISSA);
-    constexpr int MASK3 = MASK2 & 0x7fffffff;
+    // XXX: duplicate defs of `MASK1` and `MASK2`,
+    // in the HIP file "include/hip/amd_detail/amd_device_functions.h".
+    constexpr int MASK1_orig = 0x80000000;
+    constexpr int MASK2_orig = MASK1_orig >> (FP8_EXPONENT + FP8_MANTISSA);
+    constexpr int MASK3 = MASK2_orig & 0x7fffffff;
     constexpr int MASK = MASK3 | (MASK3 >> 16);
     q = __byte_perm(q, q, 0x1302);
 

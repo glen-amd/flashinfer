@@ -51,8 +51,10 @@
 #define __gpu_fp8x4_e4m3 __hip_fp8x4_e4m3_fnuz
 #define __gpu_fp8x4_e5m2 __hip_fp8x4_e5m2_fnuz
 // Bfloat16 Precision Device types
-#define gpu_bfloat16 hip_bfloat16
+// #define gpu_bfloat16 hip_bfloat16
+#define gpu_bfloat16 __hip_bfloat16
 #define __gpu_bfloat16 __hip_bfloat16
+#define gpu_bfloat162 __hip_bfloat162
 #define __gpu_bfloat162 __hip_bfloat162
 
 // #elif defined(__CUDACC__)
@@ -102,6 +104,7 @@
 // Bfloat16 Precision Device types
 #define gpu_bfloat16 nv_bfloat16
 #define __gpu_bfloat16 __nv_bfloat16
+#define gpu_bfloat162 nv_bfloat162
 #define __gpu_bfloat162 __nv_bfloat162
 
 #endif  // __CUDACC__ or __HIPCC__
