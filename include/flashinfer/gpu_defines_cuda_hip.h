@@ -45,8 +45,9 @@
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __hip_fp8_e4m3_fnuz
 #define __gpu_fp8_e5m2 __hip_fp8_e5m2_fnuz
-#define __gpu_nv_fp8x2_e4m3 __hip_fp8x2_e4m3_fnuz
-#define __gpu_nv_fp8x2_e5m2 __hip_fp8x2_e5m2_fnuz
+#define __gpu_fp8x2_e4m3 __hip_fp8x2_e4m3_fnuz
+#define __gpu_fp8x2_e5m2 __hip_fp8x2_e5m2_fnuz
+#define __gpu_fp8x2_storage_t __hip_fp8x2_storage_t
 #define __gpu_fp8x4_storage_t __hip_fp8x4_storage_t
 #define __gpu_fp8x4_e4m3 __hip_fp8x4_e4m3_fnuz
 #define __gpu_fp8x4_e5m2 __hip_fp8x4_e5m2_fnuz
@@ -96,8 +97,9 @@
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __nv_fp8_e4m3
 #define __gpu_fp8_e5m2 __nv_fp8_e5m2
-#define __gpu_nv_fp8x2_e4m3 __nv_fp8x2_e4m3
-#define __gpu_nv_fp8x2_e5m2 __nv_fp8x2_e5m2
+#define __gpu_fp8x2_e4m3 __nv_fp8x2_e4m3
+#define __gpu_fp8x2_e5m2 __nv_fp8x2_e5m2
+#define __gpu_fp8x2_storage_t __nv_fp8x2_storage_t
 #define __gpu_fp8x4_storage_t __nv_fp8x4_storage_t
 #define __gpu_fp8x4_e4m3 __nv_fp8x4_e4m3
 #define __gpu_fp8x4_e5m2 __nv_fp8x4_e5m2
