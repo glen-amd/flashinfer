@@ -32,6 +32,8 @@
 
 #include <type_traits>
 
+#define FLASHINFER_INLINE inline __attribute__((always_inline)) __device__
+
 #ifdef __HIPCC__
 /*
 Hacky workaround for the error below:
@@ -46,6 +48,13 @@ Hacky workaround for the error below:
 __HOST_DEVICE__ inline __hip_bfloat162 __float2bfloat162_rn(const float a) {
   return __hip_bfloat162{__float2bfloat16(a), __float2bfloat16(a)};
 }
+
+FLASHINFER_INLINE __gpu_bfloat162 make_bfloat162(const __gpu_bfloat16 x, const __gpu_bfloat16 y) {
+  __gpu_bfloat162 t;
+  t.x = x;
+  t.y = y;
+  return t;
+}
 #endif
 
 namespace flashinfer {
@@ -53,8 +62,6 @@ namespace flashinfer {
 #if (!defined(__CUDA_ARCH__) || (__CUDA_ARCH__ >= 900))
 #define FLASHINFER_HARDWARE_FP8_CONVERSION_ENABLED
 #endif
-
-#define FLASHINFER_INLINE inline __attribute__((always_inline)) __device__
 
 #if (__CUDACC_VER_MAJOR__ * 10000 + __CUDACC_VER_MINOR__ * 100 < 120400) && \
     (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))
