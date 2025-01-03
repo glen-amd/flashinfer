@@ -19,8 +19,10 @@
 #ifdef __HIPCC__
 #ifdef __HIPCC_RTC__  // Probably redundant
 #undef __HIPCC_RTC__
+#endif
 #ifndef __HIP_PLATFORM_AMD__
 #define __HIP_PLATFORM_AMD__
+#endif
 #ifdef __HIP_PLATFORM_NVIDIA__  // Redundant
 #undef __HIP_PLATFORM_NVIDIA__
 #endif
