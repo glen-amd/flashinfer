@@ -17,8 +17,11 @@
 #define FLASHINFER_MATH_CUH_
 
 #ifdef __HIPCC__
+#ifndef __HIP_PLATFORM_AMD__
+#define __HIP_PLATFORM_AMD__
+#endif
 #ifndef HIP_ENABLE_WARP_SYNC_BUILTINS
-#define HIP_ENABLE_WARP_SYNC_BUILTINS
+#define HIP_ENABLE_WARP_SYNC_BUILTINS 1
 #endif
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
