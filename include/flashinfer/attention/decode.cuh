@@ -402,8 +402,13 @@ __global__ void SingleDecodeWithKVCacheKernel(const __grid_constant__
  */
 template <PosEncodingMode POS_ENCODING_MODE, uint32_t num_stages_smem, uint32_t tile_size_per_bdx,
           uint32_t vec_size, uint32_t bdx, uint32_t bdy, uint32_t bdz, typename AttentionVariant>
+#ifdef __HIPCC__
+__global__ void BatchDecodeWithPagedKVCacheKernel(const __constant__
+                                                  typename AttentionVariant::ParamsT params) {
+#else
 __global__ void BatchDecodeWithPagedKVCacheKernel(const __grid_constant__
                                                   typename AttentionVariant::ParamsT params) {
+#endif
   auto block = cg::this_thread_block();
   using DTypeQ = typename AttentionVariant::DTypeQ;
   using DTypeKV = typename AttentionVariant::DTypeKV;

@@ -41,7 +41,7 @@
 #define gpuLaunchKernel hipLaunchKernel
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize hipFuncAttributeMaxDynamicSharedMemorySize
-#define gpuDevAttrMultiProcessorCount hipDevAttrMultiProcessorCount
+#define gpuDevAttrMultiProcessorCount hipDeviceAttributeMultiprocessorCount
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __hip_fp8_e4m3_fnuz
 #define __gpu_fp8_e5m2 __hip_fp8_e5m2_fnuz

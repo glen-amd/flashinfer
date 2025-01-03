@@ -17,13 +17,11 @@
 #define FLASHINFER_MATH_CUH_
 
 #ifdef __HIPCC__
+#ifndef HIP_ENABLE_WARP_SYNC_BUILTINS
+#define HIP_ENABLE_WARP_SYNC_BUILTINS
+#endif
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-// #ifndef __HIPCC_RTC__
-#include <hip/amd_detail/amd_device_functions.h>
-#include <hip/amd_detail/amd_warp_functions.h>
-#include <hip/amd_detail/amd_warp_sync_functions.h>
-// #endif
 #else
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
