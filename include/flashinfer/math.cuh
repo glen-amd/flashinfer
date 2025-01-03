@@ -17,8 +17,12 @@
 #define FLASHINFER_MATH_CUH_
 
 #ifdef __HIPCC__
+#ifdef __HIPCC_RTC__  // Probably redundant
+#undef __HIPCC_RTC__
 #ifndef __HIP_PLATFORM_AMD__
 #define __HIP_PLATFORM_AMD__
+#ifdef __HIP_PLATFORM_NVIDIA__  // Redundant
+#undef __HIP_PLATFORM_NVIDIA__
 #endif
 #ifndef HIP_ENABLE_WARP_SYNC_BUILTINS
 #define HIP_ENABLE_WARP_SYNC_BUILTINS 1
