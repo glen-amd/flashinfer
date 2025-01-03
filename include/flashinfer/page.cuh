@@ -22,6 +22,7 @@
 #include "layout.cuh"
 #include "utils.cuh"
 #include "vec_dtypes.cuh"
+#include "gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 
@@ -292,7 +293,7 @@ __global__ void AppendPagedKVCacheKernel(paged_kv_t<DType, IdType> paged_kv,
  */
 template <typename DType, typename IdType>
 cudaError_t AppendPagedKVCacheDecode(paged_kv_t<DType, IdType> paged_kv, DType* key, DType* value,
-                                     cudaStream_t stream = nullptr) {
+                                     gpuStream_t stream = nullptr) {
   uint32_t head_dim = paged_kv.head_dim;
   uint32_t batch_size = paged_kv.batch_size;
   uint32_t num_heads = paged_kv.num_heads;
@@ -305,7 +306,7 @@ cudaError_t AppendPagedKVCacheDecode(paged_kv_t<DType, IdType> paged_kv, DType* 
     dim3 nthrs(bdx, bdy);
     auto kernel = AppendPagedKVCacheDecodeKernel<HEAD_DIM, vec_size, DType, IdType>;
     void* args[] = {(void*)&paged_kv, (void*)&key, (void*)&value};
-    FLASHINFER_CUDA_CALL(cudaLaunchKernel((void*)kernel, nblks, nthrs, args, 0, stream));
+    FLASHINFER_CUDA_CALL(gpuLaunchKernel((void*)kernel, nblks, nthrs, args, 0, stream));
   });
   return cudaSuccess;
 }
