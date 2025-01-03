@@ -17,18 +17,18 @@
 #define FLASHINFER_MATH_CUH_
 
 #ifdef __HIPCC__
-#ifdef __HIPCC_RTC__  // Probably redundant
-#undef __HIPCC_RTC__
-#endif
-#ifndef __HIP_PLATFORM_AMD__
-#define __HIP_PLATFORM_AMD__
-#endif
-#ifdef __HIP_PLATFORM_NVIDIA__  // Redundant
-#undef __HIP_PLATFORM_NVIDIA__
-#endif
-#ifndef HIP_ENABLE_WARP_SYNC_BUILTINS
-#define HIP_ENABLE_WARP_SYNC_BUILTINS 1
-#endif
+// #ifdef __HIPCC_RTC__  // Probably redundant
+// #undef __HIPCC_RTC__
+// #endif
+// #ifndef __HIP_PLATFORM_AMD__
+// #define __HIP_PLATFORM_AMD__
+// #endif
+// #ifdef __HIP_PLATFORM_NVIDIA__  // Redundant
+// #undef __HIP_PLATFORM_NVIDIA__
+// #endif
+// #ifndef HIP_ENABLE_WARP_SYNC_BUILTINS
+// #define HIP_ENABLE_WARP_SYNC_BUILTINS 1
+// #endif
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #else
@@ -124,7 +124,11 @@ __forceinline__ __device__ float shfl_xor_sync(float x, int lane_mask) {
  * \param lane_mask The mask to perform thread index xor with: y[i] <- x[i ^ lane_mask]
  */
 __forceinline__ __device__ half2 shfl_xor_sync(half2 x, int lane_mask) {
+#ifdef __HIPCC__
+  return __shfl_xor(x, lane_mask);
+#else
   return __shfl_xor_sync(0xffffffff, x, lane_mask);
+#endif
 }
 
 /*!
