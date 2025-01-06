@@ -146,13 +146,23 @@ inline gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     const uint32_t page_size, bool enable_cuda_graph, gpuStream_t stream) {
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using IdType = typename AttentionVariant::IdType;
+#ifdef __HIPCC__
+  constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
+  constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
+  constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
   constexpr uint32_t vec_size = std::max(16UL / sizeof(DTypeKV), HEAD_DIM / 32UL);
+#endif
   auto compute_capacity = GetCudaComputeCapability();
   DISPATCH_COMPUTE_CAP_DECODE_NUM_STAGES_SMEM(compute_capacity, NUM_STAGES_SMEM, {
     constexpr uint32_t bdx = HEAD_DIM / vec_size;
     static_assert(bdx <= 32);
     constexpr uint32_t bdy = GROUP_SIZE;
+#ifdef __HIPCC__
+    constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
+#else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
+#endif
     constexpr uint32_t bdz = num_threads / (bdx * bdy);
     constexpr uint32_t tile_size_per_bdx = GROUP_SIZE == 1 ? (sizeof(DTypeKV) == 1 ? 2U : 4U) : 1U;
     const uint32_t num_kv_heads = num_qo_heads / GROUP_SIZE;
@@ -212,14 +222,24 @@ gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
 
   auto compute_capacity = GetCudaComputeCapability();
   DISPATCH_COMPUTE_CAP_DECODE_NUM_STAGES_SMEM(compute_capacity, NUM_STAGES_SMEM, {
+#ifdef __HIPCC__
+    constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
+    constexpr uint32_t temp_2nd = HEAD_DIM_CKV / 32UL;
+    constexpr uint32_t vec_size_ckv = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
     constexpr uint32_t vec_size_ckv = std::max(16UL / sizeof(DTypeKV), HEAD_DIM_CKV / 32UL);
+#endif
     constexpr uint32_t bdx = HEAD_DIM_CKV / vec_size_ckv;
     constexpr uint32_t vec_size_kpe = HEAD_DIM_KPE / bdx;
 
     constexpr uint32_t bdy = 8;
     constexpr uint32_t tile_size_qo_heads = 2;
     constexpr uint32_t qo_heads_per_block = bdy * tile_size_qo_heads;
+#ifdef __HIPCC__
+    constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
+#else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
+#endif
     constexpr uint32_t bdz = num_threads / (bdx * bdy);
     const uint32_t gdy = ceil_div(num_qo_heads, qo_heads_per_block);
 
