@@ -33,6 +33,7 @@ def get_instantiation_cu(args: argparse.Namespace) -> List[str]:
     def write_if_different(path: Path, content: str) -> None:
         if path.exists() and path.read_text() == content:
             return
+        print(f"Writing {path}")
         path.write_text(content)
 
     path: Path = args.path
