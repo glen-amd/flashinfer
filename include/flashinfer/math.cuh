@@ -111,15 +111,17 @@ __forceinline__ __device__ float ptx_log2(float x) {
 }
 
 #ifdef __HIPCC__
-__device__ half2 compute_ex2_approx_f16x2(uint32_t x_u32) {
-  // Unpack a uint32_t value into two __half values
-  __half x0 = __half(x_u32 & 0xFFFF);  // Extract lower 16 bits
-  __half x1 = __half((x_u32 >> 16) & 0xFFFF);  // Extract upper 16 bits
+__device__ half2 compute_ex2_approx_f16x2(uint32_t x) {
+  // Unpack the two 16-bit half-precision floats from the input
+  // Extract lower 16 bits
+  __half x0 = __ushort_as_half(x & 0xFFFF);
+  // Extract upper 16 bits
+  __half x1 = __ushort_as_half((x >> 16) & 0xFFFF);
 
   // Compute exp2 (approximation) for each half
   // CUDA intrinsic for approximate exp2
-  __half y0 = __exp2f(x0);
-  __half y1 = __exp2f(x1);
+  __half y0 = __float2half(exp2f(__half2float(x0)));
+  __half y1 = __float2half(exp2f(__half2float(x1)));
 
   return __halves2half2(y0, y1);
 }
@@ -133,7 +135,7 @@ __forceinline__ __device__ half2 ptx_exp2(half2 x) {
   uint32_t y_u32;
   uint32_t x_u32 = half2_as_uint32(x);
 #ifdef __HIPCC__
-  return compute_ex2_approx_f16x2(x);
+  return compute_ex2_approx_f16x2(x_u32);
 #else
   asm volatile("ex2.approx.f16x2 %0, %1;" : "=r"(y_u32) : "r"(x_u32));
   return uint32_as_half2(y_u32);
@@ -147,7 +149,7 @@ __forceinline__ __device__ half2 ptx_exp2(half2 x) {
 __forceinline__ __device__ half ptx_exp2(half x) {
   ushort y_u16;
 #ifdef __HIPCC__
-  return __exp2f(x);
+  return __float2half(exp2f(__half2float(x)))
 #else
   asm volatile("ex2.approx.f16 %0, %1;" : "=h"(y_u16) : "h"(__half_as_ushort(x)));
   return __ushort_as_half(y_u16);
@@ -268,7 +270,7 @@ __forceinline__ __device__ half2 tanh(half2 x) {
 __device__ __half tanh_approx_half(__half x) {
   // Approximation: tanh(x) ~ x * (1 - 0.5 * x^2)
   __half x_squared = __hmul(x, x);
-  __half res = __hmul(x, __hsub(__float2half(1.0f), __half(0.5f) * x_squared));
+  __half res = __hmul(x, __hsub(__float2half(1.0f), __float2half(0.5f) * x_squared));
   return res;
 }
 #endif
