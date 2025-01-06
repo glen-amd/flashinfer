@@ -242,17 +242,20 @@ if enable_aot:
                 "nvcc": hipcc_flags,
             },
         ),
-        '''torch_cpp_ext.CUDAExtension(
-            name="flashinfer._kernels_sm90",
-            sources=kernel_sm90_sources,
-            sources=[],
-            include_dirs=include_dirs,
-            extra_compile_args={
-                "cxx": cxx_flags,
-                "nvcc": nvcc_flags + sm90a_flags,
-            },
-        ),'''
+        # torch_cpp_ext.CUDAExtension(
+        #     name="flashinfer._kernels_sm90",
+        #     sources=kernel_sm90_sources,
+        #     sources=[],
+        #     include_dirs=include_dirs,
+        #     extra_compile_args={
+        #         "cxx": cxx_flags,
+        #         "nvcc": nvcc_flags + sm90a_flags,
+        #    },
+        # ),
     ]
+    print(f"Size of ext_modules: {len(ext_modules)}")
+    for m in ext_modules:
+        print(f"Module type: {type(m)}")
 
 setuptools.setup(
     version=get_version(),
