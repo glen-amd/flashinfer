@@ -242,16 +242,16 @@ if enable_aot:
                 "nvcc": hipcc_flags,
             },
         ),
-        torch_cpp_ext.CUDAExtension(
+        '''torch_cpp_ext.CUDAExtension(
             name="flashinfer._kernels_sm90",
-            # sources=kernel_sm90_sources,
+            sources=kernel_sm90_sources,
             sources=[],
             include_dirs=include_dirs,
             extra_compile_args={
                 "cxx": cxx_flags,
                 "nvcc": nvcc_flags + sm90a_flags,
             },
-        ),
+        ),'''
     ]
 
 setuptools.setup(
