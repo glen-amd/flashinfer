@@ -23,6 +23,8 @@
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
+#include <math.h>
+#include <float.h>
 #else
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
@@ -271,6 +273,64 @@ struct vec_cast<gpu_bfloat16, __gpu_fp8_e5m2> {
   }
 };
 
+#ifdef __HIPCC__
+// Function to convert half-precision to e4m3
+__device__ uint8_t convert_f32_to_e4m3(float val) {
+  // Define the range of e4m3
+  // 1. Minimum representable value for e4m3
+  // 2. Binary 1000.000 in e4m3
+  // 3. FLT_MIN is not suitable for e4m3 because e4m3 has a much smaller dynamic range.
+  float min_e4m3 = -8.0f;
+  // 1. Maximum representable value for e4m3
+  // 2. Binary 0111.111 in e4m3
+  // FLT_MAX far exceeds the maximum value representable in e4m3.
+  float max_e4m3 = 7.875f;
+
+  // Saturate the value to the e4m3 range
+  val = fminf(fmaxf(val, min_e4m3), max_e4m3);
+
+  // Perform conversion
+  // Decompose into mantissa and exponent
+  int exp;
+  float mantissa = frexpf(val, &exp);
+
+  // Encode sign bit
+  uint8_t sign = (mantissa < 0) ? 0x80 : 0x00;
+
+  // Normalize mantissa and encode exponent
+  mantissa = fabsf(mantissa) * 16.0f;  // Scale mantissa for e4m3's 3-bit precision
+  uint8_t exponent = static_cast<uint8_t>(exp + 7);  // Bias of 7 for e4m3
+
+  // Quantize mantissa
+  // Apply round-to-nearest-even to the mantissa
+  uint8_t quant_mantissa = static_cast<uint8_t>(roundf(mantissa)) & 0x07;
+
+  // Combine into 8 bits: [sign][exponent][mantissa]
+  return sign | (exponent << 3) | quant_mantissa;
+}
+
+__device__ __half2 convert_uint32_to_half2(uint32_t input) {
+  // Extract the low and high 16 bits
+  uint16_t low_val = input & 0xFFFF;
+  uint16_t high_val = (input >> 16) & 0xFFFF;
+  // Convert to __half
+  __half low_half = __float2half(static_cast<float>(low_val));
+  __half high_half = __float2half(static_cast<float>(high_val));
+  // Pack into __half2
+  return __halves2half2(low_half, high_half);
+}
+
+
+// Convert f16x2 (__half2) to e4m3x2 (packed 16-bit)
+__device__ uint16_t convert_f16x2_to_e4m3x2(__half2 x) {
+  float f32_0 = __half2float(__low2half(x));
+  float f32_1 = __half2float(__high2half(x));
+  uint8_t e4m3_0 = convert_f32_to_e4m3(f32_0);
+  uint8_t e4m3_1 = convert_f32_to_e4m3(f32_1);
+  return (static_cast<uint16_t>(e4m3_1) << 8) | e4m3_0;
+}
+#endif
+
 template <>
 struct vec_cast<__gpu_fp8_e4m3, half> {
   template <size_t vec_size>
@@ -283,7 +343,12 @@ struct vec_cast<__gpu_fp8_e4m3, half> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint16_t y;
         uint32_t x = *(uint32_t*)&src[i * 2];
+#ifdef __HIPCC__
+        __half2 x_h2 = convert_uint32_to_half2(x);
+        y = convert_f16x2_to_e4m3x2(x_h2);
+#else
         asm volatile("cvt.rn.satfinite.e4m3x2.f16x2 %0, %1;" : "=h"(y) : "r"(x));
+#endif
         *(uint16_t*)&dst[i * 2] = y;
       }
     }
@@ -295,6 +360,61 @@ struct vec_cast<__gpu_fp8_e4m3, half> {
 #endif  // FLASHINFER_HARDWARE_FP8_CONVERSION_ENABLED
   }
 };
+
+#ifdef __HIPCC__
+__device__ uint16_t convert_f16x2_to_e5m2x2(uint32_t x) {
+  // Unpack the two 16-bit half-precision floats from the input
+  // Extract lower 16 bits
+  __half h1 = __ushort_as_half(x & 0xFFFF);
+  // Extract upper 16 bits
+  __half h2 = __ushort_as_half((x >> 16) & 0xFFFF);
+
+#if 0
+  // Alternative with `__uint2half_rn`
+  uint16_t val1 = x & 0xFFFF;  // Lower 16 bits
+  uint16_t val2 = (x >> 16) & 0xFFFF; // Upper 16 bits
+  __half h1 = __uint2half_rn(val1);
+  __half h2 = __uint2half_rn(val2);
+#endif
+
+  // Define the range of e5m2
+  // Minimum representable value for e5m2
+  const float min_e5m2 = -8.0f;
+  // Maximum representable value for e5m2
+  const float max_e5m2 = 7.75f;
+
+  // Helper lambda for conversion
+  auto f32_to_e5m2 = [min_e5m2, max_e5m2](float val) -> uint8_t {
+    // Saturate the val
+    val= fminf(fmaxf(val, min_e5m2), max_e5m2);
+
+    // Decompose into mantissa and exponent
+    int exp;
+    float mantissa = frexpf(val, &exp);
+
+    // Encode sign bit
+    uint8_t sign = (mantissa < 0) ? 0x10 : 0x00;  // Sign in bit 4
+    mantissa = fabsf(mantissa);
+
+    // Normalize mantissa and encode exponent
+    mantissa *= 4.0f;  // Scale for 2-bit mantissa
+    uint8_t exponent = static_cast<uint8_t>(exp + 7);  // Apply bias for e5m2
+
+    // Apply round-to-nearest-even
+    uint8_t quant_mantissa = static_cast<uint8_t>(roundf(mantissa)) & 0x03;
+
+    // Combine into 5 bits: [sign][exponent][mantissa]
+    return sign | (exponent << 2) | quant_mantissa;
+  };
+
+  // Convert the two __half values to e5m2
+  uint8_t e5m2_1 = f32_to_e5m2(__half2float(h1));
+  uint8_t e5m2_2 = f32_to_e5m2(__half2float(h2));
+
+  // Pack the two e5m2 values into a single 16-bit output
+  return (e5m2_2 << 8) | e5m2_1;
+}
+#endif
 
 template <>
 struct vec_cast<__gpu_fp8_e5m2, half> {
@@ -308,7 +428,11 @@ struct vec_cast<__gpu_fp8_e5m2, half> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint16_t y;
         uint32_t x = *(uint32_t*)&src[i * 2];
+#ifdef __HIPCC__
+        y = convert_f16x2_to_e5m2x2(x);
+#else
         asm volatile("cvt.rn.satfinite.e5m2x2.f16x2 %0, %1;" : "=h"(y) : "r"(x));
+#endif
         *(uint16_t*)&dst[i * 2] = y;
       }
     }
@@ -320,6 +444,42 @@ struct vec_cast<__gpu_fp8_e5m2, half> {
 #endif  // FLASHINFER_HARDWARE_FP8_CONVERSION_ENABLED
   }
 };
+
+#ifdef __HIPCC__
+__device__ uint32_t convert_e4m3x2_to_f16x2(uint16_t x) {
+  // Extract two e4m3 values from the 16-bit input
+  uint8_t e4m3_1 = x & 0xFF;  // Lower 8 bits
+  uint8_t e4m3_2 = (x >> 8) & 0xFF;  // Upper 8 bits
+
+  // Decode e4m3 to float
+  auto e4m3_to_f32 = [](uint8_t e4m3) -> float {
+    // Extract sign, exponent, and mantissa
+    int sign = (e4m3 & 0x80) ? -1 : 1;
+    int exponent = ((e4m3 >> 3) & 0x0F) - 7;  // 4-bit exponent with bias 7
+    int mantissa = e4m3 & 0x07;  // 3-bit mantissa
+
+    // Handle special case: zero
+    if (exponent == -7 && mantissa == 0) {
+      return 0.0f;
+    }
+
+    // Convert to float
+    float f32_val = sign * ldexpf(1.0f + mantissa / 8.0f, exponent);
+    return f32_val;
+  };
+
+  float f1 = e4m3_to_f32(e4m3_1);
+  float f2 = e4m3_to_f32(e4m3_2);
+
+  // Convert float to IEEE f16
+  __half h1 = __float2half_rn(f1);
+  __half h2 = __float2half_rn(f2);
+
+  // Pack the two f16 values into a single uint32_t
+  uint32_t f16x2 = (__half_as_ushort(h2) << 16) | __half_as_ushort(h1);
+  return f16x2;
+}
+#endif
 
 template <>
 struct vec_cast<half, __gpu_fp8_e4m3> {
@@ -333,7 +493,11 @@ struct vec_cast<half, __gpu_fp8_e4m3> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint32_t y;
         uint16_t x = *(uint16_t*)&src[i * 2];
+#ifdef __HIPCC__
+        y = convert_e4m3x2_to_f16x2(x);
+#else
         asm volatile("cvt.rn.f16x2.e4m3x2 %0, %1;" : "=r"(y) : "h"(x));
+#endif
         *(uint32_t*)&dst[i * 2] = y;
       }
     }
@@ -354,6 +518,42 @@ struct vec_cast<half, __gpu_fp8_e4m3> {
   }
 };
 
+#ifdef __HIPCC__
+__device__ uint32_t convert_e5m2x2_to_f16x2(uint16_t x) {
+  // Extract two e5m2 values from the 16-bit input
+  uint8_t e5m2_1 = x & 0xFF;  // Lower 8 bits
+  uint8_t e5m2_2 = (x >> 8) & 0xFF;  // Upper 8 bits
+
+  // Decode e5m2 to float
+  auto e5m2_to_f32 = [](uint8_t e5m2) -> float {
+    // Extract sign, exponent, and mantissa
+    int sign = (e5m2 & 0x80) ? -1 : 1;  // Sign bit
+    int exponent = ((e5m2 >> 2) & 0x1F) - 15;  // 5-bit exponent with bias 15
+    int mantissa = e5m2 & 0x03;  // 2-bit mantissa
+
+    // Handle special case: zero
+    if (exponent == -15 && mantissa == 0) {
+      return 0.0f;
+    }
+
+    // Convert to float
+    float value = sign * ldexpf(1.0f + mantissa / 4.0f, exponent);
+    return value;
+  };
+
+  float f1 = e5m2_to_f32(e5m2_1);
+  float f2 = e5m2_to_f32(e5m2_2);
+
+  // Convert float to IEEE f16
+  __half h1 = __float2half_rn(f1);
+  __half h2 = __float2half_rn(f2);
+
+  // Pack the two f16 values into a single uint32_t
+  uint32_t f16x2 = (__half_as_ushort(h2) << 16) | __half_as_ushort(h1);
+  return f16x2;
+}
+#endif
+
 template <>
 struct vec_cast<half, __gpu_fp8_e5m2> {
   template <size_t vec_size>
@@ -366,7 +566,11 @@ struct vec_cast<half, __gpu_fp8_e5m2> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint32_t y;
         uint16_t x = *(uint16_t*)&src[i * 2];
+#ifdef __HIPCC__
+        y = convert_e5m2x2_to_f16x2(x);
+#else
         asm volatile("cvt.rn.f16x2.e5m2x2 %0, %1;" : "=r"(y) : "h"(x));
+#endif
         *(uint32_t*)&dst[i * 2] = y;
       }
     }

@@ -31,6 +31,8 @@
 // #endif
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
+#include <float.h>
+#include <math.h>
 #else
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
@@ -52,15 +54,47 @@ __forceinline__ __device__ half2 uint32_as_half2(uint32_t x) { return *(half2*)&
 
 __forceinline__ __device__ uint32_t half2_as_uint32(half2 x) { return *(uint32_t*)&x; }
 
+#ifdef __HIPCC__
+__device__ float compute_ex2_approx_ftz(float x) {
+  // Define a small threshold for FTZ
+  // Alternative __FLT_DENORM_MIN__
+  const float ftz_threshold = 1e-37f;
+
+  // Calculate the base-2 exponential
+  float y = exp2f(x);
+
+  // Apply FTZ behavior
+  if (fabsf(y) < ftz_threshold) {
+    y = 0.0f;
+  }
+  return y;
+}
+#endif
+
 /*!
  * \brief Wrapper of PTX ex2.approx instruction, which computes 2^x
  * \param x input
  */
 __forceinline__ __device__ float ptx_exp2(float x) {
   float y;
+#ifdef __HIPCC__
+  y = compute_ex2_approx_ftz(x);
+#else
   asm volatile("ex2.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x));
+#endif
   return y;
 }
+
+#ifdef __HIPCC__
+__device__ float compute_log2_approx_ftz(float x) {
+  // Flush subnormals to zero
+  if (fabsf(x) < __FLT_DENORM_MIN__) {
+    x = 0.0f;
+  }
+  // Hardware-accelerated log2 approximation
+  return __log2f(x);
+}
+#endif
 
 /*!
  * \brief Wrapper of PTX lg2.approx instruction, which computes log2(x)
@@ -68,9 +102,28 @@ __forceinline__ __device__ float ptx_exp2(float x) {
  */
 __forceinline__ __device__ float ptx_log2(float x) {
   float y;
+#ifdef __HIPCC__
+  y = compute_log2_approx_ftz(x);
+#else
   asm volatile("lg2.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x));
+#endif
   return y;
 }
+
+#ifdef __HIPCC__
+__device__ half2 compute_ex2_approx_f16x2(uint32_t x_u32) {
+  // Unpack a uint32_t value into two __half values
+  __half x0 = __half(x_u32 & 0xFFFF);  // Extract lower 16 bits
+  __half x1 = __half((x_u32 >> 16) & 0xFFFF);  // Extract upper 16 bits
+
+  // Compute exp2 (approximation) for each half
+  // CUDA intrinsic for approximate exp2
+  __half y0 = __exp2f(x0);
+  __half y1 = __exp2f(x1);
+
+  return __halves2half2(y0, y1);
+}
+#endif
 
 /*!
  * \brief Wrapper of PTX ex2.approx.f16x2 instruction, which computes 2^x
@@ -79,8 +132,12 @@ __forceinline__ __device__ float ptx_log2(float x) {
 __forceinline__ __device__ half2 ptx_exp2(half2 x) {
   uint32_t y_u32;
   uint32_t x_u32 = half2_as_uint32(x);
+#ifdef __HIPCC__
+  return compute_ex2_approx_f16x2(x);
+#else
   asm volatile("ex2.approx.f16x2 %0, %1;" : "=r"(y_u32) : "r"(x_u32));
   return uint32_as_half2(y_u32);
+#endif
 }
 
 /*!
@@ -89,8 +146,12 @@ __forceinline__ __device__ half2 ptx_exp2(half2 x) {
  */
 __forceinline__ __device__ half ptx_exp2(half x) {
   ushort y_u16;
+#ifdef __HIPCC__
+  return __exp2f(x);
+#else
   asm volatile("ex2.approx.f16 %0, %1;" : "=h"(y_u16) : "h"(__half_as_ushort(x)));
   return __ushort_as_half(y_u16);
+#endif
 }
 
 /*!
@@ -99,7 +160,14 @@ __forceinline__ __device__ half ptx_exp2(half x) {
  */
 __forceinline__ __device__ float ptx_rcp(float x) {
   float y;
+#ifdef __HIPCC__
+  // FIXME:
+  // 1. FTZ may globally be controlled by hardware level configurations.
+  // 2. The "round-to-nearest-even" mode is indicated by this intrinsic.
+  y = __frcp_rn(x);
+#else
   asm volatile("rcp.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x));
+#endif
   return y;
 }
 
@@ -110,11 +178,16 @@ __forceinline__ __device__ float ptx_rcp(float x) {
  * \param lane_mask The mask to perform thread index xor with: y[i] <- x[i ^ delta]
  */
 __forceinline__ __device__ float shfl_xor_sync(float x, int lane_mask) {
+#ifdef __HIPCC__
+  // FIXME: May miss the synchronization across threads in the warp.
+  return __shfl_xor(x, lane_mask);
+#else
   float y;
   asm volatile("shfl.sync.bfly.b32 %0, %1, %2, 0x1f, 0xffffffff;"
                : "=f"(y)
                : "f"(x), "r"(lane_mask));
   return y;
+#endif
 }
 
 /*!
@@ -125,6 +198,7 @@ __forceinline__ __device__ float shfl_xor_sync(float x, int lane_mask) {
  */
 __forceinline__ __device__ half2 shfl_xor_sync(half2 x, int lane_mask) {
 #ifdef __HIPCC__
+  // FIXME: May miss the synchronization across threads in the warp.
   return __shfl_xor(x, lane_mask);
 #else
   return __shfl_xor_sync(0xffffffff, x, lane_mask);
@@ -136,9 +210,13 @@ __forceinline__ __device__ half2 shfl_xor_sync(half2 x, int lane_mask) {
  * \param x input
  */
 __forceinline__ __device__ float rsqrt(float x) {
+#ifdef __HIPCC__
+  return __frsqrt_rn(x);
+#else
   float y;
   asm volatile("rsqrt.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x));
   return y;
+#endif
 }
 
 /*!
@@ -146,10 +224,30 @@ __forceinline__ __device__ float rsqrt(float x) {
  * \param x input
  */
 __forceinline__ __device__ float tanh(float x) {
+#ifdef __HIPCC__
+  // FIXME:
+  // In terms of precision vs. performance, a custom "tanhf" may be needed.
+  return tanhf(x);
+#else
   float y;
   asm volatile("tanh.approx.f32 %0, %1;" : "=f"(y) : "f"(x));
   return y;
+#endif
 }
+
+#ifdef __HIPCC__
+__device__ uint32_t tanh_approx_uint32(uint32_t x) {
+  // Convert uint32_t to float
+  float f32 = __uint_as_float(x);
+
+  // FIXME:
+  // In terms of precision vs. performance, a custom "tanhf" may be needed.
+  float result = tanhf(fx);
+
+  // Convert the result back to uint32_t
+  return __float_as_uint(result);
+}
+#endif
 
 /*!
  * \brief Wrapper of PTX tanh.approx.f16x2 instruction, which computes tanh(x)
@@ -158,18 +256,35 @@ __forceinline__ __device__ float tanh(float x) {
 __forceinline__ __device__ half2 tanh(half2 x) {
   uint32_t y_u32;
   uint32_t x_u32 = half2_as_uint32(x);
+#ifdef __HIPCC__
+  y_u32 = tanh_approx_uint32(x_u32);
+#else
   asm volatile("tanh.approx.f16x2 %0, %1;" : "=r"(y_u32) : "r"(x_u32));
+#endif
   return uint32_as_half2(y_u32);
 }
+
+#ifdef __HIPCC__
+__device__ __half tanh_approx_half(__half x) {
+  // Approximation: tanh(x) ~ x * (1 - 0.5 * x^2)
+  __half x_squared = __hmul(x, x);
+  __half res = __hmul(x, __hsub(__float2half(1.0f), __half(0.5f) * x_squared));
+  return res;
+}
+#endif
 
 /*!
  * \brief Wrapper of PTX tanh.approx.f16 instruction, which computes tanh(x)
  * \param x input
  */
 __forceinline__ __device__ half tanh(half x) {
+#ifdef __HIPCC__
+  return tanh_approx_half(x);
+#else
   ushort y_u16;
   asm volatile("tanh.approx.f16 %0, %1;" : "=h"(y_u16) : "h"(__half_as_ushort(x)));
   return __ushort_as_half(y_u16);
+#endif
 }
 
 }  // namespace math
