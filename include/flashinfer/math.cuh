@@ -149,7 +149,7 @@ __forceinline__ __device__ half2 ptx_exp2(half2 x) {
 __forceinline__ __device__ half ptx_exp2(half x) {
   ushort y_u16;
 #ifdef __HIPCC__
-  return __float2half(exp2f(__half2float(x)))
+  return __float2half(exp2f(__half2float(x)));
 #else
   asm volatile("ex2.approx.f16 %0, %1;" : "=h"(y_u16) : "h"(__half_as_ushort(x)));
   return __ushort_as_half(y_u16);
@@ -269,9 +269,11 @@ __forceinline__ __device__ half2 tanh(half2 x) {
 #ifdef __HIPCC__
 __device__ __half tanh_approx_half(__half x) {
   // Approximation: tanh(x) ~ x * (1 - 0.5 * x^2)
-  __half x_squared = __hmul(x, x);
-  __half res = __hmul(x, __hsub(__float2half(1.0f), __float2half(0.5f) * x_squared));
-  return res;
+  // FIXME:
+  // In terms of precision vs. performance, a custom "tanhf" may be needed.
+  float x_f32 = __half2float(x);
+  float y_f32 = tanhf(x_f32);
+  return __float2half(y_32);
 }
 #endif
 
