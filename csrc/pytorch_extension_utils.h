@@ -33,7 +33,7 @@
   [&]() -> bool {                                                                        \
     switch (pytorch_dtype) {                                                             \
       case at::ScalarType::Half: {                                                       \
-        using c_type = nv_half;                                                          \
+        using c_type = __half;                                                          \
         return __VA_ARGS__();                                                            \
       }                                                                                  \
       case at::ScalarType::BFloat16: {                                                   \
@@ -52,7 +52,7 @@
   [&]() -> bool {                                                                        \
     switch (pytorch_dtype) {                                                             \
       case at::ScalarType::Half: {                                                       \
-        using c_type = nv_half;                                                          \
+        using c_type = __half;                                                          \
         return __VA_ARGS__();                                                            \
       }                                                                                  \
       default:                                                                           \
@@ -98,7 +98,7 @@
   [&]() -> bool {                                                                        \
     switch (pytorch_dtype) {                                                             \
       case at::ScalarType::Half: {                                                       \
-        using c_type = nv_half;                                                          \
+        using c_type = __half;                                                          \
         return __VA_ARGS__();                                                            \
       }                                                                                  \
       case at::ScalarType::BFloat16: {                                                   \
@@ -125,7 +125,7 @@
   [&]() -> bool {                                                                        \
     switch (pytorch_dtype) {                                                             \
       case at::ScalarType::Half: {                                                       \
-        using c_type = nv_half;                                                          \
+        using c_type = __half;                                                          \
         return __VA_ARGS__();                                                            \
       }                                                                                  \
       case at::ScalarType::BFloat16: {                                                   \
@@ -144,7 +144,7 @@
   [&]() -> bool {                                                                            \
     switch (pytorch_dtype) {                                                                 \
       case at::ScalarType::Half: {                                                           \
-        using c_type = nv_half;                                                              \
+        using c_type = __half;                                                              \
         return __VA_ARGS__();                                                                \
       }                                                                                      \
       case at::ScalarType::Float8_e4m3fn: {                                                  \
@@ -167,7 +167,7 @@
   [&]() -> bool {                                                                        \
     switch (pytorch_dtype) {                                                             \
       case at::ScalarType::Half: {                                                       \
-        using c_type = nv_half;                                                          \
+        using c_type = __half;                                                          \
         return __VA_ARGS__();                                                            \
       }                                                                                  \
       default:                                                                           \
