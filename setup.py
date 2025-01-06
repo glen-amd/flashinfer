@@ -65,8 +65,8 @@ def generate_cuda() -> None:
     try:  # no aot_build_utils in sdist
         sys.path.append(str(root))
         from aot_build_utils.generate import get_instantiation_cu
-    except ImportError:
-        print("Import failed in the function generate_cuda()")
+    except ImportError as e:
+        print("Import failed in the function generate_cuda(): ", e)
         return
 
     aot_kernel_uris = get_instantiation_cu(
