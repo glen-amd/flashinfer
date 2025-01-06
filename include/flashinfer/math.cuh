@@ -240,14 +240,11 @@ __forceinline__ __device__ float tanh(float x) {
 #ifdef __HIPCC__
 __device__ uint32_t tanh_approx_uint32(uint32_t x) {
   // Convert uint32_t to float
-  float f32 = __uint_as_float(x);
-
+  float x_f32 = __uint_as_float(x);
   // FIXME:
   // In terms of precision vs. performance, a custom "tanhf" may be needed.
-  float result = tanhf(fx);
-
-  // Convert the result back to uint32_t
-  return __float_as_uint(result);
+  float res = tanhf(x_f32);
+  return __float_as_uint(res);
 }
 #endif
 
@@ -273,7 +270,7 @@ __device__ __half tanh_approx_half(__half x) {
   // In terms of precision vs. performance, a custom "tanhf" may be needed.
   float x_f32 = __half2float(x);
   float y_f32 = tanhf(x_f32);
-  return __float2half(y_32);
+  return __float2half(y_f32);
 }
 #endif
 
