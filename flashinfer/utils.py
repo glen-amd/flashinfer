@@ -252,11 +252,15 @@ else:
 
 # Ref.: https://github.com/pytorch/pytorch/blob/f5af87c23c583b003e4bc69de2a3b2fe06cc24ec/torch/utils/cpp_extension.py#L233
 def check_hip_availability() -> bool:
-    return hasattr(torch, "cuda") and torch.cuda.is_available() and torch.version.hip
+    hip_avail = hasattr(torch, "cuda") and torch.cuda.is_available() and torch.version.hip
+    print(f"HIP availability: {hip_avail"});
+    return hip_avail
 
 
 def check_cuda_availability() -> bool:
-    return hasattr(torch, "cuda") and torch.cuda.is_available() and torch.version.cuda
+    cuda_avail = hasattr(torch, "cuda") and torch.cuda.is_available() and torch.version.cuda
+    print(f"CUDA availability: {cuda_avail}");
+    return cuda_avail
 
 
 def get_cuda_stream(device: torch.device) -> int:

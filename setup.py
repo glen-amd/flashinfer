@@ -147,7 +147,7 @@ if enable_aot:
 
     torch_version = Version(torch.__version__).base_version
     cmdclass["build_ext"] = NinjaBuildExtension
-    install_requires = [f"torch == {torch_version}"]
+    install_requires = [f"torch == {torch_version}+rocm{str(torch_cpp_ext.ROCM_VERSION[0])}.{str(torch_cpp_ext.ROCM_VERSION[1])}"] if check_hip_availability() else [f"torch == {torch_version}"]
 
     aot_build_meta = {}
     aot_build_meta["cuda_major"] = cuda_version.major
