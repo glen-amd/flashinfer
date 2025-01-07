@@ -16,7 +16,11 @@
 #ifndef FLASHINFER_FRAG_LAYOUT_SWIZZLE_CUH_
 #define FLASHINFER_FRAG_LAYOUT_SWIZZLE_CUH_
 
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_runtime.h>
+#endif
 
 #include <cstdint>
 

@@ -22,6 +22,7 @@
 #include "layout.cuh"
 #include "utils.cuh"
 #include "vec_dtypes.cuh"
+#include "gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 
@@ -437,8 +438,8 @@ __global__ void AppendPagedKVCachePrefillKernel(paged_kv_t<page_storage, DType, 
  * \return status Indicates whether CUDA calls are successful
  */
 template <PageStorage page_storage, typename DType, typename IdType>
-cudaError_t AppendPagedKVCacheDecode(paged_kv_t<page_storage, DType, IdType> paged_kv, DType* key,
-                                     DType* value, cudaStream_t stream = nullptr) {
+gpuError_t AppendPagedKVCacheDecode(paged_kv_t<page_storage, DType, IdType> paged_kv, DType* key,
+                                    DType* value, gpuStream_t stream = nullptr) {
   uint32_t head_dim = paged_kv.head_dim;
   uint32_t batch_size = paged_kv.batch_size;
   uint32_t num_heads = paged_kv.num_heads;
@@ -451,9 +452,9 @@ cudaError_t AppendPagedKVCacheDecode(paged_kv_t<page_storage, DType, IdType> pag
     dim3 nthrs(bdx, bdy);
     auto kernel = AppendPagedKVCacheDecodeKernel<HEAD_DIM, vec_size, page_storage, DType, IdType>;
     void* args[] = {(void*)&paged_kv, (void*)&key, (void*)&value};
-    FLASHINFER_CUDA_CALL(cudaLaunchKernel((void*)kernel, nblks, nthrs, args, 0, stream));
+    FLASHINFER_CUDA_CALL(gpuLaunchKernel((void*)kernel, nblks, nthrs, args, 0, stream));
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 /*!
@@ -470,8 +471,8 @@ cudaError_t AppendPagedKVCacheDecode(paged_kv_t<page_storage, DType, IdType> pag
  * \return status Indicates whether CUDA calls are successful
  */
 template <PageStorage page_storage, typename DType, typename IdType>
-cudaError_t AppendPagedKVCache(paged_kv_t<page_storage, DType, IdType> paged_kv, DType* key,
-                               DType* value, IdType* append_indptr, cudaStream_t stream = nullptr) {
+gpuError_t AppendPagedKVCache(paged_kv_t<page_storage, DType, IdType> paged_kv, DType* key,
+                              DType* value, IdType* append_indptr, gpuStream_t stream = nullptr) {
   uint32_t head_dim = paged_kv.head_dim;
   uint32_t batch_size = paged_kv.batch_size;
   uint32_t num_heads = paged_kv.num_heads;
@@ -484,9 +485,9 @@ cudaError_t AppendPagedKVCache(paged_kv_t<page_storage, DType, IdType> paged_kv,
     dim3 nthrs(bdx, bdy);
     auto kernel = AppendPagedKVCachePrefillKernel<HEAD_DIM, vec_size, page_storage, DType, IdType>;
     void* args[] = {(void*)&paged_kv, (void*)&key, (void*)&value, (void*)&append_indptr};
-    FLASHINFER_CUDA_CALL(cudaLaunchKernel((void*)kernel, nblks, nthrs, args, 0, stream));
+    FLASHINFER_CUDA_CALL(gpuLaunchKernel((void*)kernel, nblks, nthrs, args, 0, stream));
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 }  // namespace flashinfer

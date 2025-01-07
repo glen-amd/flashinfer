@@ -18,8 +18,13 @@
 
 #include <ATen/cuda/Exceptions.h>
 #include <c10/cuda/CUDACachingAllocator.h>
+#ifdef __HIPCC__
+#include <hipblaslt.h>
+#include <hip/hip_fp8.h>
+#else
 #include <cublasLt.h>
 #include <cuda_fp8.h>
+#endif
 #include <torch/extension.h>
 
 #include <stdexcept>

@@ -16,7 +16,12 @@
 #ifndef FLASHINFER_DECODE_ATTENTION_DECL_CUH_
 #define FLASHINFER_DECODE_ATTENTION_DECL_CUH_
 
+#include "gpu_defines_cuda_hip.h"
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#else
 #include <cuda_runtime.h>
+#endif
 
 #include "attention/handler.cuh"
 #include "attention/logits_post_hook.cuh"
@@ -37,21 +42,21 @@ cudaError_t SingleDecodeWithKVCacheDispatched(
 template <uint32_t HEAD_DIM, PageStorage page_storage, LogitsPostHook LOGITS_POST_HOOK,
           PosEncodingMode POS_ENCODING_MODE, typename DTypeQ, typename DTypeKV, typename DTypeOut,
           typename IdType>
-cudaError_t BatchDecodeWithPagedKVCacheDispatched(
+gpuError_t BatchDecodeWithPagedKVCacheDispatched(
     DTypeQ* q, IdType* q_offset, paged_kv_t<page_storage, DTypeKV, IdType> paged_kv,
     kv_partition_info_t<IdType> kv_partition_info, DTypeOut* o, DTypeOut* tmp_v, float* tmp_s,
     float* lse, bool* block_valid_mask, uint32_t padded_batch_size, uint32_t num_qo_heads,
     int32_t window_left, float logits_soft_cap, float sm_scale, float rope_scale, float rope_theta,
-    cudaStream_t stream);
+    gpuStream_t stream);
 
 template <PageStorage PAGE_STORAGE, uint32_t HEAD_DIM, LogitsPostHook LOGITS_POST_HOOK,
           PosEncodingMode POS_ENCODING_MODE, typename DTypeQ, typename DTypeKV, typename DTypeOut,
           typename IdType>
-cudaError_t BatchDecodeWithPagedKVCacheWrapperDispatched(
+gpuError_t BatchDecodeWithPagedKVCacheWrapperDispatched(
     BatchDecodeHandler* handler, DTypeQ* q, IdType* q_offset,
     paged_kv_t<PAGE_STORAGE, DTypeKV, IdType> paged_kv, DTypeOut* o, float* lse,
     uint32_t num_qo_heads, int32_t window_left, float logits_soft_cap, float sm_scale,
-    float rope_scale, float rope_theta, cudaStream_t stream) {
+    float rope_scale, float rope_theta, gpuStream_t stream) {
   paged_kv_t<PAGE_STORAGE, DTypeKV, IdType> new_paged_kv = paged_kv;
   kv_partition_info_t<IdType> kv_partition_info;
   DTypeOut* tmp_v = handler->GetTempV<DTypeOut>();

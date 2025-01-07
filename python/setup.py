@@ -22,11 +22,14 @@ import re
 import itertools
 import subprocess
 import platform
+import shutil
 
 import setuptools
 import argparse
 import torch
 import torch.utils.cpp_extension as torch_cpp_ext
+from torch.utils.cpp_extension import _get_cuda_arch_flags, _get_rocm_arch_flags
+from flashinfer.utils import check_hip_availability
 
 import generate_single_decode_inst, generate_single_prefill_inst, generate_batch_paged_decode_inst, generate_batch_paged_prefill_inst, generate_batch_ragged_prefill_inst, generate_dispatch_inc
 
@@ -38,13 +41,40 @@ for cuda_arch_flags in torch_cpp_ext._get_cuda_arch_flags():
     if arch < 75:
         raise RuntimeError("FlashInfer requires sm75+")
 
+if check_hip_availability():
+    # TODO
+    # allowed_archs = ["native", "gfx90a", "gfx940", "gfx941", "gfx942"]
+    for rocm_arch_flags in torch_cpp_ext._get_rocm_arch_flags():
+        # arch = str(re.search(r"\-\-offload\-arch=(\w+)", rocm_arch_flags).group(1))
+        # if arch not in allowed_archs:
+            # raise RuntimeError("AMD ROCm archs mismatch")
+        pass
+    cuda_version = get_hip_version()
+else:
+    # cuda arch check for fp8 at the moment.
+    for cuda_arch_flags in torch_cpp_ext._get_cuda_arch_flags():
+        arch = int(re.search("compute_\d+", cuda_arch_flags).group()[-2:])
+        if arch < 75:
+            raise RuntimeError("FlashInfer requires sm75+")
+
+
 enable_bf16 = os.environ.get("FLASHINFER_ENABLE_BF16", "1") == "1"
 enable_fp8 = os.environ.get("FLASHINFER_ENABLE_FP8", "1") == "1"
 
 if enable_bf16:
-    torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
+    if check_hip_availability():
+        # FIXME
+        torch_cpp_ext.COMMON_HIP_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
+        torch_cpp_ext.COMMON_HIPCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
+    else:
+        torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_BF16")
 if enable_fp8:
-    torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
+    if check_hip_availability():
+        # FIXME
+        torch_cpp_ext.COMMON_HIP_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
+        torch_cpp_ext.COMMON_HIPCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
+    else:
+        torch_cpp_ext.COMMON_NVCC_FLAGS.append("-DFLASHINFER_ENABLE_FP8")
 
 
 def write_if_different(path: pathlib.Path, content: str) -> None:
@@ -268,13 +298,34 @@ def get_cuda_version() -> Tuple[int, int]:
     return major, minor
 
 
+def get_hip_version() -> Tuple[int, int]:
+    if torch_cpp_ext.ROCM_VERSION is None:
+        hipcc_loc = shutil.which('hipcc')
+        if hipcc_loc is None:
+            # FIXME
+            hipcc_loc = torch_cpp_ext.ROCM_HOME + "/bin/hipcc"
+            # hipcc_loc = torch_cpp_ext.ROCM_HOME + "/hip/bin/hipcc"
+        # HIP version: 5.2.0
+        # Clang version: 13.0.0 (ROCm Clang 13.0.0)
+        # Build configuration: Release
+        txt = subprocess.check_output([hipcc_loc, "--version"], text=True)
+        major, minor = re.findall(r"HIP version: (\d+\.\d+),", txt)[0])
+        return major, minor
+    else:
+        return torch_cpp_ext.ROCM_VERSION[0], torch_cpp_ext.ROCM_VERSION[1]
+
+
 def generate_build_meta() -> None:
     d = {}
     version = get_version()
-    d["cuda_major"], d["cuda_minor"] = get_cuda_version()
     d["torch"] = torch.__version__
     d["python"] = platform.python_version()
-    d["TORCH_CUDA_ARCH_LIST"] = os.environ.get("TORCH_CUDA_ARCH_LIST", None)
+    if check_hip_availability():
+        d["cuda_major"], d["cuda_minor"] = get_hip_version()
+        d["PYTORCH_ROCM_ARCH"] = os.environ.get("PYTORCH_ROCM_ARCH", None)
+    else:
+        d["cuda_major"], d["cuda_minor"] = get_cuda_version()
+        d["TORCH_CUDA_ARCH_LIST"] = os.environ.get("TORCH_CUDA_ARCH_LIST", None)
     with open(root / "flashinfer/_build_meta.py", "w") as f:
         f.write(f"__version__ = {version!r}\n")
         f.write(f"build_meta = {d!r}")
@@ -326,33 +377,35 @@ if __name__ == "__main__":
             "-compress-all",
             "-use_fast_math",
         ],
+        # TODO
+        "hipcc": [],
     }
     ext_modules = []
-    ext_modules.append(
-        torch_cpp_ext.CUDAExtension(
-            name="flashinfer._kernels",
-            sources=[
-                "csrc/cascade.cu",
-                "csrc/page.cu",
-                "csrc/flashinfer_ops.cu",
-                "csrc/sampling.cu",
-                "csrc/norm.cu",
-                "csrc/activation.cu",
-                "csrc/rope.cu",
-                "csrc/group_gemm.cu",
-                "csrc/quantization.cu",
-                "csrc/bmm_fp8.cu",
-            ],
-            include_dirs=include_dirs,
-            extra_compile_args=extra_compile_args,
-        )
-    )
+#    ext_modules.append(
+#        torch_cpp_ext.CUDAExtension(
+#            name="flashinfer._kernels",
+#            sources=[
+#                "csrc/cascade.cu",
+#                "csrc/page.cu",
+#                "csrc/flashinfer_ops.cu",
+#                "csrc/sampling.cu",
+#                "csrc/norm.cu",
+#                "csrc/activation.cu",
+#                "csrc/rope.cu",
+#                "csrc/group_gemm.cu",
+#                "csrc/quantization.cu",
+#                "csrc/bmm_fp8.cu",
+#            ],
+#            include_dirs=include_dirs,
+#            extra_compile_args=extra_compile_args,
+#        )
+#    )
     ext_modules.append(
         torch_cpp_ext.CUDAExtension(
             name="flashinfer._decode",
             sources=[
-                "csrc/single_decode.cu",
-                "csrc/flashinfer_ops_decode.cu",
+                # "csrc/single_decode.cu",
+                # "csrc/flashinfer_ops_decode.cu",
                 "csrc/batch_decode.cu",
             ]
             + files_decode,
@@ -360,19 +413,19 @@ if __name__ == "__main__":
             extra_compile_args=extra_compile_args,
         )
     )
-    ext_modules.append(
-        torch_cpp_ext.CUDAExtension(
-            name="flashinfer._prefill",
-            sources=[
-                "csrc/single_prefill.cu",
-                "csrc/flashinfer_ops_prefill.cu",
-                "csrc/batch_prefill.cu",
-            ]
-            + files_prefill,
-            include_dirs=include_dirs,
-            extra_compile_args=extra_compile_args,
-        )
-    )
+#    ext_modules.append(
+#        torch_cpp_ext.CUDAExtension(
+#            name="flashinfer._prefill",
+#            sources=[
+#                "csrc/single_prefill.cu",
+#                "csrc/flashinfer_ops_prefill.cu",
+#                "csrc/batch_prefill.cu",
+#            ]
+#            + files_prefill,
+#            include_dirs=include_dirs,
+#            extra_compile_args=extra_compile_args,
+#        )
+#    )
     setuptools.setup(
         name="flashinfer",
         version=get_version(),

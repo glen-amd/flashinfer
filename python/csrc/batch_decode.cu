@@ -43,7 +43,7 @@ void BatchDecodeWithPagedKVCachePyTorchWrapper::Plan(
   size_t int_workspace_size_in_bytes =
       int_workspace_buffer.size(0) * int_workspace_buffer.element_size();
   auto device = float_workspace_buffer.device();
-  cudaStream_t torch_current_stream = c10::cuda::getCurrentCUDAStream(device.index());
+  gpuStream_t torch_current_stream = c10::cuda::getCurrentCUDAStream(device.index());
   handler_->SetCUDAStream(torch_current_stream);
   indptr = indptr.to(torch::kCPU);
   last_page_len = last_page_len.to(torch::kCPU);
@@ -61,7 +61,7 @@ void BatchDecodeWithPagedKVCachePyTorchWrapper::Plan(
         return DISPATCH_logits_post_hook(logits_post_hook, LOGITS_POST_HOOK, [&] {
           return DISPATCH_pos_encoding_mode(
               PosEncodingMode(pos_encoding_mode), POS_ENCODING_MODE, [&] {
-                cudaError_t status =
+                gpuError_t status =
                     handler_
                         ->PlanDispatched<HEAD_DIM, PageStorage::kIndices, LOGITS_POST_HOOK,
                                          POS_ENCODING_MODE, qkv_type, qkv_type, qkv_type, int32_t>(
@@ -71,8 +71,8 @@ void BatchDecodeWithPagedKVCachePyTorchWrapper::Plan(
                             int_workspace_size_in_bytes, static_cast<int32_t*>(indptr.data_ptr()),
                             static_cast<int32_t*>(last_page_len.data_ptr()), batch_size,
                             num_qo_heads, num_kv_heads, page_size);
-                TORCH_CHECK(status == cudaSuccess, "BatchDecodeWithPagedKVCache failed with error ",
-                            cudaGetErrorString(status));
+                TORCH_CHECK(status == gpuSuccess, "BatchDecodeWithPagedKVCache failed with error ",
+                            gpuGetErrorString(status));
                 return true;
               });
         });
@@ -85,7 +85,7 @@ void BatchDecodeWithPagedKVCachePyTorchWrapper::Plan(
           return DISPATCH_logits_post_hook(logits_post_hook, LOGITS_POST_HOOK, [&] {
             return DISPATCH_pos_encoding_mode(
                 PosEncodingMode(pos_encoding_mode), POS_ENCODING_MODE, [&] {
-                  cudaError_t status =
+                  gpuError_t status =
                       handler_->PlanDispatched<HEAD_DIM, PageStorage::kIndices, LOGITS_POST_HOOK,
                                                POS_ENCODING_MODE, q_type, kv_type, q_type, int32_t>(
                           static_cast<void*>(float_workspace_buffer.data_ptr()),
@@ -94,9 +94,9 @@ void BatchDecodeWithPagedKVCachePyTorchWrapper::Plan(
                           int_workspace_size_in_bytes, static_cast<int32_t*>(indptr.data_ptr()),
                           static_cast<int32_t*>(last_page_len.data_ptr()), batch_size, num_qo_heads,
                           num_kv_heads, page_size);
-                  TORCH_CHECK(status == cudaSuccess,
+                  TORCH_CHECK(status == gpuSuccess,
                               "BatchDecodeWithPagedKVCache failed with error ",
-                              cudaGetErrorString(status));
+                              gpuGetErrorString(status));
                   return true;
                 });
           });
@@ -185,7 +185,7 @@ std::vector<torch::Tensor> BatchDecodeWithPagedKVCachePyTorchWrapper::Run(
   CHECK_EQ(paged_kv_last_page_len.scalar_type(), torch::kInt32);
   CHECK_GQA_HEAD_DIVISIBLE(num_qo_heads, num_kv_heads);
 
-  cudaStream_t torch_current_stream = c10::cuda::getCurrentCUDAStream(device.index());
+  gpuStream_t torch_current_stream = c10::cuda::getCurrentCUDAStream(device.index());
   torch::Tensor o = torch::empty_like(q);
   torch::Tensor lse;
   if (return_lse) {
@@ -217,7 +217,7 @@ std::vector<torch::Tensor> BatchDecodeWithPagedKVCachePyTorchWrapper::Run(
                     static_cast<int32_t*>(paged_kv_indices.data_ptr()),
                     static_cast<int32_t*>(paged_kv_indptr.data_ptr()),
                     static_cast<int32_t*>(paged_kv_last_page_len.data_ptr()));
-                cudaError_t status = BatchDecodeWithPagedKVCacheWrapperDispatched<
+                gpuError_t status = BatchDecodeWithPagedKVCacheWrapperDispatched<
                     PageStorage::kIndices, HEAD_DIM, LOGITS_POST_HOOK, POS_ENCODING_MODE, qkv_type,
                     qkv_type, qkv_type, int32_t>(
                     handler_.get(), static_cast<qkv_type*>(q.data_ptr()),
@@ -225,8 +225,8 @@ std::vector<torch::Tensor> BatchDecodeWithPagedKVCachePyTorchWrapper::Run(
                     /*lse=*/(return_lse ? static_cast<float*>(lse.data_ptr()) : nullptr),
                     num_qo_heads, window_left, logits_soft_cap, sm_scale, rope_scale, rope_theta,
                     /*stream=*/torch_current_stream);
-                TORCH_CHECK(status == cudaSuccess, "BatchDecodeWithPagedKVCache failed with error ",
-                            cudaGetErrorString(status));
+                TORCH_CHECK(status == gpuSuccess, "BatchDecodeWithPagedKVCache failed with error ",
+                            gpuGetErrorString(status));
                 return true;
               });
         });
@@ -250,7 +250,7 @@ std::vector<torch::Tensor> BatchDecodeWithPagedKVCachePyTorchWrapper::Run(
                       static_cast<int32_t*>(paged_kv_indices.data_ptr()),
                       static_cast<int32_t*>(paged_kv_indptr.data_ptr()),
                       static_cast<int32_t*>(paged_kv_last_page_len.data_ptr()));
-                  cudaError_t status = BatchDecodeWithPagedKVCacheWrapperDispatched<
+                  gpuError_t status = BatchDecodeWithPagedKVCacheWrapperDispatched<
                       PageStorage::kIndices, HEAD_DIM, LOGITS_POST_HOOK, POS_ENCODING_MODE, q_type,
                       kv_type, q_type, int32_t>(
                       handler_.get(), static_cast<q_type*>(q.data_ptr()),
@@ -258,9 +258,9 @@ std::vector<torch::Tensor> BatchDecodeWithPagedKVCachePyTorchWrapper::Run(
                       /*lse=*/(return_lse ? static_cast<float*>(lse.data_ptr()) : nullptr),
                       num_qo_heads, window_left, logits_soft_cap, sm_scale, rope_scale, rope_theta,
                       /*stream=*/torch_current_stream);
-                  TORCH_CHECK(status == cudaSuccess,
+                  TORCH_CHECK(status == gpuSuccess,
                               "BatchDecodeWithPagedKVCache failed with error ",
-                              cudaGetErrorString(status));
+                              gpuGetErrorString(status));
                   return true;
                 });
           });

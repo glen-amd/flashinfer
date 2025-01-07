@@ -16,7 +16,13 @@
 #ifndef FLASHINFER_ATTENTION_HANDLER_CUH_
 #define FLASHINFER_ATTENTION_HANDLER_CUH_
 
+#include "../gpu_defines_cuda_hip.h"
+
+#ifdef __HIPCC__
+#include <hip/hip_runtime_api.h>
+#else
 #include <cuda_runtime_api.h>
+#endif
 #include <driver_types.h>
 
 #include <algorithm>
@@ -140,17 +146,27 @@ inline std::tuple<bool, uint32_t, uint32_t> PrefillBinarySearchKVChunkSize(
 template <uint32_t GROUP_SIZE, uint32_t HEAD_DIM, PageStorage page_storage,
           LogitsPostHook LOGITS_POST_HOOK, PosEncodingMode POS_ENCODING_MODE, typename DTypeQ,
           typename DTypeKV, typename DTypeOut, typename IdType>
-cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
+gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     bool& split_kv, uint32_t& max_grid_size, uint32_t& max_num_pages_per_batch,
     uint32_t& new_batch_size, uint32_t batch_size, IdType* kv_indptr_h, const uint32_t num_qo_heads,
-    const uint32_t page_size, bool enable_cuda_graph, cudaStream_t stream) {
+    const uint32_t page_size, bool enable_cuda_graph, gpuStream_t stream) {
+#ifdef __HIPCC__
+  constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
+  constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
+  constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
   constexpr uint32_t vec_size = std::max(16UL / sizeof(DTypeKV), HEAD_DIM / 32UL);
+#endif
   auto compute_capacity = GetCudaComputeCapability();
   DISPATCH_COMPUTE_CAP_DECODE_NUM_STAGES_SMEM(compute_capacity, NUM_STAGES_SMEM, {
     constexpr uint32_t bdx = HEAD_DIM / vec_size;
     static_assert(bdx <= 32);
     constexpr uint32_t bdy = GROUP_SIZE;
+#ifdef __HIPCC__
+    constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
+#else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
+#endif
     constexpr uint32_t bdz = num_threads / (bdx * bdy);
     constexpr uint32_t tile_size_per_bdx = GROUP_SIZE == 1 ? (sizeof(DTypeKV) == 1 ? 2U : 4U) : 1U;
     const uint32_t num_kv_heads = num_qo_heads / GROUP_SIZE;
@@ -165,9 +181,9 @@ cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     int num_blocks_per_sm = 0;
     int num_sm = 0;
     int dev_id = 0;
-    FLASHINFER_CUDA_CALL(cudaGetDevice(&dev_id));
-    FLASHINFER_CUDA_CALL(cudaDeviceGetAttribute(&num_sm, cudaDevAttrMultiProcessorCount, dev_id));
-    FLASHINFER_CUDA_CALL(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
+    FLASHINFER_CUDA_CALL(gpuGetDevice(&dev_id));
+    FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sm, gpuDevAttrMultiProcessorCount, dev_id));
+    FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
                                                                        num_threads, smem_size));
     max_grid_size = num_blocks_per_sm * num_sm;
     if (batch_size * num_kv_heads >= max_grid_size) {
@@ -190,7 +206,7 @@ cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
         split_kv = true;
       }
     }
-    return cudaSuccess;
+    return gpuSuccess;
   })
 }
 
@@ -206,13 +222,13 @@ cudaError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
  * \return status Indicates whether CUDA calls are successful
  */
 template <typename IdType>
-cudaError_t PartitionPagedKVCacheComputeAuxiliaryInfo(
+gpuError_t PartitionPagedKVCacheComputeAuxiliaryInfo(
     const uint32_t max_num_pages_per_batch, const uint32_t old_batch_size,
     const uint32_t padded_batch_size, const uint32_t page_size, IdType* old_indptr_h,
     IdType* old_last_page_len_h, IdType* new_page_indptr_h, IdType* new_last_page_len_h,
     IdType* chunk_indptr_h, IdType* batch_idx_map_h, IdType* chunk_start_pos_h,
     IdType* seq_lens_before_partition_h, bool* block_valid_mask_h, void* device_buffer,
-    void* host_buffer, size_t num_bytes_to_copy, cudaStream_t stream = nullptr) {
+    void* host_buffer, size_t num_bytes_to_copy, gpuStream_t stream = nullptr) {
   std::vector<IdType> new_page_indptr_vec, new_last_page_len_vec, chunk_indptr_vec,
       batch_idx_map_vec, chunk_start_pos_vec, seq_lens_before_partition_vec;
   std::vector<bool> block_valid_mask_vec;
@@ -267,9 +283,9 @@ cudaError_t PartitionPagedKVCacheComputeAuxiliaryInfo(
     std::copy(block_valid_mask_vec.begin(), block_valid_mask_vec.end(), block_valid_mask_h);
   }
 
-  FLASHINFER_CUDA_CALL(cudaMemcpyAsync(device_buffer, host_buffer, num_bytes_to_copy,
-                                       cudaMemcpyHostToDevice, stream));
-  return cudaSuccess;
+  FLASHINFER_CUDA_CALL(gpuMemcpyAsync(device_buffer, host_buffer, num_bytes_to_copy,
+                                      gpuMemcpyHostToDevice, stream));
+  return gpuSuccess;
 }
 
 class BatchDecodeHandler {
@@ -311,10 +327,10 @@ class BatchDecodeHandler {
   template <uint32_t HEAD_DIM, PageStorage page_storage, LogitsPostHook LOGITS_POST_HOOK,
             PosEncodingMode POS_ENCODING_MODE, typename DTypeQ, typename DTypeKV, typename DTypeOut,
             typename IdType>
-  cudaError_t PlanDispatched(void* float_buffer, size_t float_workspace_size_in_bytes,
-                             void* int_buffer, size_t int_workspace_size_in_bytes, IdType* indptr_h,
-                             IdType* last_page_len_h, uint32_t batch_size, uint32_t num_qo_heads,
-                             uint32_t num_kv_heads, uint32_t page_size) {
+  gpuError_t PlanDispatched(void* float_buffer, size_t float_workspace_size_in_bytes,
+                            void* int_buffer, size_t int_workspace_size_in_bytes, IdType* indptr_h,
+                            IdType* last_page_len_h, uint32_t batch_size, uint32_t num_qo_heads,
+                            uint32_t num_kv_heads, uint32_t page_size) {
     Clear();
     batch_size_before_partition_ = batch_size;
     bool split_kv;
@@ -440,7 +456,7 @@ class BatchDecodeHandler {
         }
       }
     });
-    return cudaSuccess;
+    return gpuSuccess;
   }
 
   void Clear() {
@@ -459,17 +475,17 @@ class BatchDecodeHandler {
   }
 
   void UpdatePageLockedBufferSize(size_t int_workspace_size_in_bytes) {
-    cudaFreeHost(page_locked_buffer_);
-    cudaMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
+    gpuFreeHost(page_locked_buffer_);
+    gpuMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
   }
 
   uint32_t GetBatchSizeBeforePartition() const { return batch_size_before_partition_; }
 
   uint32_t GetBatchSizeAfterPartition() const { return batch_size_after_partition_; }
 
-  cudaStream_t GetCUDAStream() const { return stream_; }
+  gpuStream_t GetCUDAStream() const { return stream_; }
 
-  void SetCUDAStream(cudaStream_t stream) { stream_ = stream; }
+  void SetCUDAStream(gpuStream_t stream) { stream_ = stream; }
 
   /*!
    * \brief Constructor of BatchDecodeHandler
@@ -490,9 +506,9 @@ class BatchDecodeHandler {
         cuda_graph_enabled_(enable_cuda_graph),
         fixed_batch_size_(batch_size),
         stream_(nullptr) {
-    cudaMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
+    gpuMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
   }
-  ~BatchDecodeHandler() { cudaFreeHost(page_locked_buffer_); }
+  ~BatchDecodeHandler() { gpuFreeHost(page_locked_buffer_); }
 
   bool IsCUDAGraphEnabled() const { return cuda_graph_enabled_; }
 
@@ -512,20 +528,20 @@ class BatchDecodeHandler {
   bool cuda_graph_enabled_;
   uint32_t padded_batch_size_;
   uint32_t fixed_batch_size_;
-  cudaStream_t stream_;
+  gpuStream_t stream_;
 };
 
 template <typename IdType>
-cudaError_t PrefillSplitQOKVIndptr(bool& split_kv, uint32_t& split_max_batch_size,
-                                   uint32_t& total_num_tiles_q, uint32_t& new_batch_size,
-                                   WarpLayout& warp_layout, uint32_t& kv_chunk_size,
-                                   uint32_t& total_num_rows, std::vector<IdType>& request_indices,
-                                   std::vector<IdType>& qo_tile_indices,
-                                   std::vector<IdType>& kv_tile_indices,
-                                   std::vector<IdType>& merge_indptr, std::vector<IdType>& o_indptr,
-                                   IdType* qo_indptr_h, IdType* kv_indptr_h, uint32_t batch_size,
-                                   uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t head_dim,
-                                   uint32_t page_size) {
+gpuError_t PrefillSplitQOKVIndptr(bool& split_kv, uint32_t& split_max_batch_size,
+                                  uint32_t& total_num_tiles_q, uint32_t& new_batch_size,
+                                  WarpLayout& warp_layout, uint32_t& kv_chunk_size,
+                                  uint32_t& total_num_rows, std::vector<IdType>& request_indices,
+                                  std::vector<IdType>& qo_tile_indices,
+                                  std::vector<IdType>& kv_tile_indices,
+                                  std::vector<IdType>& merge_indptr, std::vector<IdType>& o_indptr,
+                                  IdType* qo_indptr_h, IdType* kv_indptr_h, uint32_t batch_size,
+                                  uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t head_dim,
+                                  uint32_t page_size) {
   request_indices.clear();
   qo_tile_indices.clear();
   kv_tile_indices.clear();
@@ -540,8 +556,8 @@ cudaError_t PrefillSplitQOKVIndptr(bool& split_kv, uint32_t& split_max_batch_siz
   // step 0: get the number of SMs
   int num_sm = 0;
   int dev_id = 0;
-  FLASHINFER_CUDA_CALL(cudaGetDevice(&dev_id));
-  FLASHINFER_CUDA_CALL(cudaDeviceGetAttribute(&num_sm, cudaDevAttrMultiProcessorCount, dev_id));
+  FLASHINFER_CUDA_CALL(gpuGetDevice(&dev_id));
+  FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sm, gpuDevAttrMultiProcessorCount, dev_id));
   int num_blocks_per_sm = 2;
   int max_grid_size = num_blocks_per_sm * num_sm;
   split_max_batch_size = max_grid_size / num_kv_heads;
@@ -605,7 +621,7 @@ cudaError_t PrefillSplitQOKVIndptr(bool& split_kv, uint32_t& split_max_batch_siz
   // step 4: multiply kv_chunk_size by page_size
   kv_chunk_size *= page_size;
 
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 class BatchPrefillHandler {
@@ -656,12 +672,12 @@ class BatchPrefillHandler {
   uint32_t GetTotalNumRows() const { return total_num_rows_; }
 
   void UpdatePageLockedBufferSize(size_t int_workspace_size_in_bytes) {
-    cudaFreeHost(page_locked_buffer_);
-    cudaMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
+    gpuFreeHost(page_locked_buffer_);
+    gpuMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
   }
 
   template <typename DTypeOut, typename IdType>
-  cudaError_t Plan(void* float_buffer, size_t float_workspace_size_in_bytes, void* int_buffer,
+  gpuError_t Plan(void* float_buffer, size_t float_workspace_size_in_bytes, void* int_buffer,
                    size_t int_workspace_size_in_bytes, IdType* qo_indptr_h, IdType* kv_indptr_h,
                    uint32_t batch_size, uint32_t num_qo_heads, uint32_t num_kv_heads,
                    uint32_t head_dim, uint32_t page_size) {
@@ -734,8 +750,8 @@ class BatchPrefillHandler {
       std::copy(o_indptr_vec.begin(), o_indptr_vec.end(), (IdType*)o_indptr_h_);
 
       size_t num_bytes_to_copy = (char*)int_allocator.ptr - (char*)request_indices_;
-      FLASHINFER_CUDA_CALL(cudaMemcpyAsync(request_indices_, page_locked_buffer_, num_bytes_to_copy,
-                                           cudaMemcpyHostToDevice, stream_))
+      FLASHINFER_CUDA_CALL(gpuMemcpyAsync(request_indices_, page_locked_buffer_, num_bytes_to_copy,
+                                          gpuMemcpyHostToDevice, stream_))
 
       if (total_num_tiles_q < split_max_batch_size) {
         AlignedAllocator float_allocator(float_buffer, float_workspace_size_in_bytes);
@@ -788,8 +804,8 @@ class BatchPrefillHandler {
       std::copy(o_indptr_vec.begin(), o_indptr_vec.end(), (IdType*)o_indptr_h_);
       size_t num_bytes_to_copy = (char*)int_allocator.ptr - (char*)request_indices_;
 
-      FLASHINFER_CUDA_CALL(cudaMemcpyAsync(request_indices_, page_locked_buffer_, num_bytes_to_copy,
-                                           cudaMemcpyHostToDevice, stream_))
+      FLASHINFER_CUDA_CALL(gpuMemcpyAsync(request_indices_, page_locked_buffer_, num_bytes_to_copy,
+                                          gpuMemcpyHostToDevice, stream_))
 
       if (split_kv) {
         AlignedAllocator float_allocator(float_buffer, float_workspace_size_in_bytes);
@@ -806,7 +822,7 @@ class BatchPrefillHandler {
 
       block_valid_mask_ = nullptr;
     }
-    return cudaSuccess;
+    return gpuSuccess;
   }
 
   void Clear() {
@@ -824,9 +840,9 @@ class BatchPrefillHandler {
     warp_layout_ = WarpLayout::k4x1x2;
   }
 
-  cudaStream_t GetCUDAStream() const { return stream_; }
+  gpuStream_t GetCUDAStream() const { return stream_; }
 
-  void SetCUDAStream(cudaStream_t stream) { stream_ = stream; }
+  void SetCUDAStream(gpuStream_t stream) { stream_ = stream; }
 
   bool IsCUDAGraphEnabled() const { return enable_cuda_graph_; }
 
@@ -845,9 +861,9 @@ class BatchPrefillHandler {
         warp_layout_(WarpLayout::k4x1x2),
         enable_cuda_graph_(enable_cuda_graph),
         stream_(nullptr) {
-    cudaMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
+    gpuMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
   }
-  ~BatchPrefillHandler() { cudaFreeHost(page_locked_buffer_); }
+  ~BatchPrefillHandler() { gpuFreeHost(page_locked_buffer_); }
 
  protected:
   void* page_locked_buffer_;
@@ -864,7 +880,7 @@ class BatchPrefillHandler {
   uint32_t padded_batch_size_;
   WarpLayout warp_layout_;
   bool enable_cuda_graph_;
-  cudaStream_t stream_;
+  gpuStream_t stream_;
 };
 
 }  // namespace flashinfer
