@@ -261,5 +261,8 @@ setuptools.setup(
     version=get_version(),
     ext_modules=ext_modules,
     cmdclass=cmdclass,
-    install_requires=install_requires,
+    # install_requires=install_requires,
+    # Workaround for missing PyTorch for ROCm in FlashInfer's Wheel hub,
+    # where there are only PyTorch versions for CUDA platform.
+    install_requires=[],
 )
