@@ -147,7 +147,10 @@ if enable_aot:
 
     torch_version = Version(torch.__version__).base_version
     cmdclass["build_ext"] = NinjaBuildExtension
-    install_requires = [f"torch == {torch_version}+rocm{str(torch_cpp_ext.ROCM_VERSION[0])}.{str(torch_cpp_ext.ROCM_VERSION[1])}"] if check_hip_availability() else [f"torch == {torch_version}"]
+    # install_requires = [f"torch == {torch_version}+rocm{str(torch_cpp_ext.ROCM_VERSION[0])}.{str(torch_cpp_ext.ROCM_VERSION[1])}"] if check_hip_availability() else [f"torch == {torch_version}"]
+    # Workaround for missed PyTorch for ROCm in FlashInfer's Wheel hub https://flashinfer.ai/whl/,
+    # where there are only PyTorch versions for CUDA platform.
+    install_requires = [] if check_hip_availability() else [f"torch == {torch_version}"]
 
     aot_build_meta = {}
     aot_build_meta["cuda_major"] = cuda_version.major
@@ -261,8 +264,5 @@ setuptools.setup(
     version=get_version(),
     ext_modules=ext_modules,
     cmdclass=cmdclass,
-    # install_requires=install_requires,
-    # Workaround for missing PyTorch for ROCm in FlashInfer's Wheel hub,
-    # where there are only PyTorch versions for CUDA platform.
-    install_requires=[],
+    install_requires=install_requires,
 )
