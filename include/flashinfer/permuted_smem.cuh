@@ -24,9 +24,8 @@
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
-#endif
-
 #include <cuda/pipeline>
+#endif
 
 #include "cp_async.cuh"
 #include "mma.cuh"
