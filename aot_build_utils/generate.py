@@ -240,12 +240,13 @@ def get_instantiation_cu(args: argparse.Namespace) -> List[str]:
                             f"f16qk_{bool(allow_fp16_qk_reduction)}"
                         )
 
-    return (
-        single_decode_uris
-        + batch_decode_uris
-        + single_prefill_uris
-        + batch_prefill_uris
-    )
+#    return (
+#        single_decode_uris
+#        + batch_decode_uris
+#        + single_prefill_uris
+#        + batch_prefill_uris
+#    )
+    return batch_decode_uris
 
 
 if __name__ == "__main__":
