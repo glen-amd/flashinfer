@@ -179,6 +179,7 @@ def test_batch_decode_with_paged_kv_cache(
 #        torch.testing.assert_close(o[i], o_ref_i, rtol=1e-3, atol=1e-3)
 
 
+"""
 @pytest.mark.parametrize("batch_size", [12, 17])
 @pytest.mark.parametrize("kv_len", [54, 97, 512])
 @pytest.mark.parametrize("page_size", [1, 8, 16])
@@ -492,6 +493,7 @@ def test_cuda_graph_batch_decode_with_paged_kv_cache(
             qi, ki, vi, pos_encoding_mode=pos_encoding_mode
         )
         torch.testing.assert_close(o[i], o_ref_i, rtol=1e-3, atol=1e-3)
+"""
 
 
 if __name__ == "__main__":

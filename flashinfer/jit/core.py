@@ -119,12 +119,17 @@ def load_cuda_ops(
     extra_include_paths=None,
     verbose=False,
 ):
-    cflags = ["-O3", "-Wno-switch-bool"]
-    cuda_cflags = ["-O3", "-std=c++17", "-DFLASHINFER_ENABLE_BF16", "-DFLASHINFER_ENABLE_FP8"]
+    cflags = ["-O3", "-g"]
+    cuda_cflags = ["-O3", "-g", "-std=c++17", "-DFLASHINFER_ENABLE_BF16", "-DFLASHINFER_ENABLE_FP8"]
     if check_hip_availability():
-        cflags += ["-x", "hip"]
-        cuda_cflags += ["-ffast-math"]
+        print("Setting extra flags for ROCm/HIP")
+        # cflags += ["-x", "hip"]
+        # FIXME
+        cflags += ["-I/opt/rocm/include"]
+        cuda_cflags += ["--offload-arch=gfx942", "-ffast-math", "-I/opt/rocm/include", "-L/opt/rocm/lib", "-lamdhip64", "-D__HIP_PLATFORM_AMD__"]
     else:
+        print("Setting extra flags for CUDA")
+        cflags += ["-Wno-switch-bool"]
         cuda_cflags += ["--threads", "4", "-use_fast_math"]
 
     cflags += extra_cflags
