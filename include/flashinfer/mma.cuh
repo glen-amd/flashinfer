@@ -78,7 +78,6 @@ Hacky workaround for the error below:
         |              ^
 */
 // Borrowed from "hipamd/include/hip/amd_detail/amd_hip_bf16.h" in the clr Git repo
-}
 #endif
 
 enum class MMAMode {
