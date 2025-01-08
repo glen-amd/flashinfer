@@ -120,15 +120,13 @@ def load_cuda_ops(
     verbose=False,
 ):
     cflags = ["-O3", "-Wno-switch-bool"]
-    cuda_cflags = [] if check_hip_availability() else [
-        "-O3",
-        "-std=c++17",
-        "--threads",
-        "4",
-        "-use_fast_math",
-        "-DFLASHINFER_ENABLE_BF16",
-        "-DFLASHINFER_ENABLE_FP8",
-    ]
+    cuda_cflags = ["-O3", "-std=c++17", "-DFLASHINFER_ENABLE_BF16", "-DFLASHINFER_ENABLE_FP8"]
+    if check_hip_availability():
+        cflags += ["-x", "hip"]
+        cuda_cflags += ["-ffast-math"]
+    else:
+        cuda_cflags += ["--threads", "4", "-use_fast_math"]
+
     cflags += extra_cflags
     cuda_cflags += extra_cuda_cflags
     logger.info(f"Loading JIT ops: {name}")
