@@ -510,6 +510,7 @@ if __name__ == "__main__":
         torch.float16,
         True,
     )
+"""
     test_batch_decode_with_tuple_paged_kv_cache(
         256,
         54,
@@ -579,3 +580,4 @@ if __name__ == "__main__":
     test_cuda_graph_batch_decode_with_paged_kv_cache(
         12, 54, 8, 8, 8, 128, "HND", "NONE", torch.float16, torch.float8_e5m2, True
     )
+"""
