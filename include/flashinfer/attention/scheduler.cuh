@@ -645,13 +645,13 @@ struct PrefillPlanInfo {
 };
 
 template <typename IdType>
-inline cudaError_t PrefillPlan(void* float_buffer, size_t float_workspace_size_in_bytes,
-                               void* int_buffer, void* page_locked_int_buffer,
-                               size_t int_workspace_size_in_bytes, PrefillPlanInfo& plan_info,
-                               IdType* qo_indptr_h, IdType* kv_indptr_h, uint32_t total_num_rows,
-                               uint32_t batch_size, uint32_t num_qo_heads, uint32_t num_kv_heads,
-                               uint32_t head_dim, uint32_t page_size, bool enable_cuda_graph,
-                               uint32_t sizeof_dtype_o, cudaStream_t stream) {
+inline gpuError_t PrefillPlan(void* float_buffer, size_t float_workspace_size_in_bytes,
+                              void* int_buffer, void* page_locked_int_buffer,
+                              size_t int_workspace_size_in_bytes, PrefillPlanInfo& plan_info,
+                              IdType* qo_indptr_h, IdType* kv_indptr_h, uint32_t total_num_rows,
+                              uint32_t batch_size, uint32_t num_qo_heads, uint32_t num_kv_heads,
+                              uint32_t head_dim, uint32_t page_size, bool enable_cuda_graph,
+                              uint32_t sizeof_dtype_o, gpuStream_t stream) {
   if (num_qo_heads % num_kv_heads != 0) {
     std::ostringstream err_msg;
     err_msg << "num_qo_heads " << num_qo_heads << " should be divisible by num_kv_heads "
@@ -662,8 +662,8 @@ inline cudaError_t PrefillPlan(void* float_buffer, size_t float_workspace_size_i
   // step 0: get the number of SMs
   int num_sm = 0;
   int dev_id = 0;
-  FLASHINFER_CUDA_CALL(cudaGetDevice(&dev_id));
-  FLASHINFER_CUDA_CALL(cudaDeviceGetAttribute(&num_sm, cudaDevAttrMultiProcessorCount, dev_id));
+  FLASHINFER_CUDA_CALL(gpuGetDevice(&dev_id));
+  FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sm, gpuDevAttrMultiProcessorCount, dev_id));
   int num_blocks_per_sm = 2;
   int max_grid_size = num_blocks_per_sm * num_sm;
   uint32_t max_batch_size_if_split = max_grid_size / num_kv_heads;
@@ -741,10 +741,10 @@ inline cudaError_t PrefillPlan(void* float_buffer, size_t float_workspace_size_i
   }
 
   size_t num_bytes_to_copy = int_allocator.num_allocated_bytes();
-  FLASHINFER_CUDA_CALL(cudaMemcpyAsync(int_buffer, page_locked_int_buffer, num_bytes_to_copy,
-                                       cudaMemcpyHostToDevice, stream));
+  FLASHINFER_CUDA_CALL(gpuMemcpyAsync(int_buffer, page_locked_int_buffer, num_bytes_to_copy,
+                                      gpuMemcpyHostToDevice, stream));
 
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 }  // namespace flashinfer

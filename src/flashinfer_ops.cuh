@@ -66,10 +66,10 @@ class BatchDecodeHandler {
 
   template <uint32_t HEAD_DIM_CKV, uint32_t HEAD_DIM_KPE, typename DTypeQ, typename DTypeKV,
             typename DTypeO, typename IdType>
-  cudaError_t PlanDispatchedMLA(void* float_buffer, size_t float_workspace_size_in_bytes,
-                                void* int_buffer, size_t int_workspace_size_in_bytes,
-                                IdType* indptr_h, IdType* last_page_len_h, uint32_t batch_size,
-                                uint32_t num_qo_heads, uint32_t page_size) {
+  gpuError_t PlanDispatchedMLA(void* float_buffer, size_t float_workspace_size_in_bytes,
+                               void* int_buffer, size_t int_workspace_size_in_bytes,
+                               IdType* indptr_h, IdType* last_page_len_h, uint32_t batch_size,
+                               uint32_t num_qo_heads, uint32_t page_size) {
     int_buffer_ = int_buffer;
     float_buffer_ = float_buffer;
     using ParamsT = BatchDecodeParamsMLA<DTypeQ, DTypeKV, DTypeO, IdType>;
@@ -88,13 +88,13 @@ class BatchDecodeHandler {
   }
 
   void UpdatePageLockedBufferSize(size_t int_workspace_size_in_bytes) {
-    cudaFreeHost(page_locked_buffer_);
-    cudaMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
+    gpuFreeHost(page_locked_buffer_);
+    gpuMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
   }
 
-  cudaStream_t GetCUDAStream() const { return stream_; }
+  gpuStream_t GetCUDAStream() const { return stream_; }
 
-  void SetCUDAStream(cudaStream_t stream) { stream_ = stream; }
+  void SetCUDAStream(gpuStream_t stream) { stream_ = stream; }
 
   /*!
    * \brief Constructor of BatchDecodeHandler
@@ -103,9 +103,9 @@ class BatchDecodeHandler {
    */
   BatchDecodeHandler(bool enable_cuda_graph = false, uint32_t batch_size = 0)
       : cuda_graph_enabled_(enable_cuda_graph), stream_(nullptr) {
-    cudaMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
+    gpuMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
   }
-  ~BatchDecodeHandler() { cudaFreeHost(page_locked_buffer_); }
+  ~BatchDecodeHandler() { gpuFreeHost(page_locked_buffer_); }
 
   bool IsCUDAGraphEnabled() const { return cuda_graph_enabled_; }
 
@@ -159,30 +159,30 @@ class BatchDecodeHandler {
   void* float_buffer_;
   DecodePlanInfo plan_info_;
   bool cuda_graph_enabled_;
-  cudaStream_t stream_;
+  gpuStream_t stream_;
 };
 
 template <uint32_t CTA_TILE_Q, uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE,
           bool ALLOW_FP16_QK_REDUCTION, MaskMode MASK_MODE, typename AttentionVariant>
-cudaError_t BatchPrefillWithRaggedKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                                    typename AttentionVariant::DTypeO* tmp_v,
-                                                    float* tmp_s, cudaStream_t stream);
+gpuError_t BatchPrefillWithRaggedKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                                   typename AttentionVariant::DTypeO* tmp_v,
+                                                   float* tmp_s, gpuStream_t stream);
 
 template <uint32_t CTA_TILE_Q, uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE,
           bool ALLOW_FP16_QK_REDUCTION, MaskMode MASK_MODE, typename AttentionVariant>
-cudaError_t BatchPrefillWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                                   typename AttentionVariant::DTypeO* tmp_v,
-                                                   float* tmp_s, cudaStream_t stream);
+gpuError_t BatchPrefillWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                                  typename AttentionVariant::DTypeO* tmp_v,
+                                                  float* tmp_s, gpuStream_t stream);
 
 class BatchPrefillHandler {
  public:
   void UpdatePageLockedBufferSize(size_t int_workspace_size_in_bytes) {
-    cudaFreeHost(page_locked_buffer_);
-    cudaMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
+    gpuFreeHost(page_locked_buffer_);
+    gpuMallocHost(&page_locked_buffer_, int_workspace_size_in_bytes);
   }
 
   template <typename DTypeO, typename IdType>
-  cudaError_t Plan(void* float_buffer, size_t float_workspace_size_in_bytes, void* int_buffer,
+  gpuError_t Plan(void* float_buffer, size_t float_workspace_size_in_bytes, void* int_buffer,
                    size_t int_workspace_size_in_bytes, IdType* qo_indptr_h, IdType* kv_indptr_h,
                    uint32_t total_num_rows, uint32_t batch_size, uint32_t num_qo_heads,
                    uint32_t num_kv_heads, uint32_t head_dim, uint32_t page_size) {
@@ -195,17 +195,17 @@ class BatchPrefillHandler {
                                sizeof(DTypeO), stream_);
   }
 
-  cudaStream_t GetCUDAStream() const { return stream_; }
+  gpuStream_t GetCUDAStream() const { return stream_; }
 
-  void SetCUDAStream(cudaStream_t stream) { stream_ = stream; }
+  void SetCUDAStream(gpuStream_t stream) { stream_ = stream; }
 
   bool IsCUDAGraphEnabled() const { return enable_cuda_graph_; }
 
   BatchPrefillHandler(bool enable_cuda_graph = false)
       : enable_cuda_graph_(enable_cuda_graph), stream_(nullptr) {
-    cudaMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
+    gpuMallocHost(&page_locked_buffer_, 8 * 1024 * 1024);
   }
-  ~BatchPrefillHandler() { cudaFreeHost(page_locked_buffer_); }
+  ~BatchPrefillHandler() { gpuFreeHost(page_locked_buffer_); }
 
   PrefillPlanInfo GetPlanInfo() const { return plan_info_; }
 
@@ -277,23 +277,23 @@ class BatchPrefillHandler {
   void* float_buffer_;
   PrefillPlanInfo plan_info_;
   bool enable_cuda_graph_;
-  cudaStream_t stream_;
+  gpuStream_t stream_;
 };
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, bool ALLOW_FP16_QK_REDUCTION,
           MaskMode MASK_MODE, typename AttentionVariant>
-cudaError_t SinglePrefillWithKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                               typename AttentionVariant::DTypeO* tmp,
-                                               cudaStream_t stream);
+gpuError_t SinglePrefillWithKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                              typename AttentionVariant::DTypeO* tmp,
+                                              gpuStream_t stream);
 
 template <typename DTypeIn, typename DTypeO>
-cudaError_t SinglePrefillWithKVCacheCustomMask(
+gpuError_t SinglePrefillWithKVCacheCustomMask(
     DTypeIn* q, DTypeIn* k, DTypeIn* v, uint8_t* custom_mask, DTypeO* o, DTypeO* tmp, float* lse,
     uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t qo_len, uint32_t kv_len,
     uint32_t head_dim, QKVLayout kv_layout = QKVLayout::kNHD,
     PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
     bool allow_fp16_qk_reduction = false, std::optional<float> maybe_sm_scale = std::nullopt,
-    float rope_scale = 1.f, float rope_theta = 1e4, cudaStream_t stream = nullptr) {
+    float rope_scale = 1.f, float rope_theta = 1e4, gpuStream_t stream = nullptr) {
   const float sm_scale = maybe_sm_scale.value_or(1.f / std::sqrt(float(head_dim)));
   auto [qo_stride_n, qo_stride_h, kv_stride_n, kv_stride_h] =
       get_qkv_strides(kv_layout, kv_len, num_qo_heads, num_kv_heads, head_dim);
@@ -316,7 +316,7 @@ cudaError_t SinglePrefillWithKVCacheCustomMask(
                                                       ALLOW_FP16_QK_REDUCTION, MaskMode::kCustom,
                                                       AttentionVariant>(params, tmp, stream);
           })})});
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 /*!
@@ -344,15 +344,15 @@ cudaError_t SinglePrefillWithKVCacheCustomMask(
  * \return status Indicates whether CUDA calls are successful
  */
 template <typename DTypeQ, typename DTypeKV, typename DTypeO>
-cudaError_t SinglePrefillWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* o, DTypeO* tmp,
-                                     float* lse, uint32_t num_qo_heads, uint32_t num_kv_heads,
-                                     uint32_t qo_len, uint32_t kv_len, uint32_t head_dim,
-                                     bool causal = true, QKVLayout kv_layout = QKVLayout::kNHD,
-                                     PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
-                                     bool allow_fp16_qk_reduction = false,
-                                     std::optional<float> maybe_sm_scale = std::nullopt,
-                                     float rope_scale = 1.f, float rope_theta = 1e4,
-                                     cudaStream_t stream = nullptr) {
+gpuError_t SinglePrefillWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* o, DTypeO* tmp,
+                                    float* lse, uint32_t num_qo_heads, uint32_t num_kv_heads,
+                                    uint32_t qo_len, uint32_t kv_len, uint32_t head_dim,
+                                    bool causal = true, QKVLayout kv_layout = QKVLayout::kNHD,
+                                    PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
+                                    bool allow_fp16_qk_reduction = false,
+                                    std::optional<float> maybe_sm_scale = std::nullopt,
+                                    float rope_scale = 1.f, float rope_theta = 1e4,
+                                    gpuStream_t stream = nullptr) {
   const float sm_scale = maybe_sm_scale.value_or(1.f / std::sqrt(float(head_dim)));
   const MaskMode mask_mode = causal ? MaskMode::kCausal : MaskMode::kNone;
   auto [qo_stride_n, qo_stride_h, kv_stride_n, kv_stride_h] =
@@ -380,18 +380,18 @@ cudaError_t SinglePrefillWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* 
                                                           ALLOW_FP16_QK_REDUCTION, MASK_MODE,
                                                           AttentionVariant>(params, tmp, stream);
               })})})});
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-cudaError_t BatchPrefillWithRaggedKVCacheWrapper(
+gpuError_t BatchPrefillWithRaggedKVCacheWrapper(
     BatchPrefillHandler* handler, DTypeQ* q, IdType* qo_indptr, DTypeKV* k, DTypeKV* v,
     IdType* kv_indptr, IdType* q_offset, IdType* k_rope_pos_offset, DTypeO* o, float* lse,
     const uint32_t batch_size, const uint32_t num_qo_heads, const uint32_t num_kv_heads,
     const uint32_t head_dim, bool causal = true, QKVLayout kv_layout = QKVLayout::kNHD,
     PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
     bool allow_fp16_qk_reduction = false, std::optional<float> maybe_sm_scale = std::nullopt,
-    const float rope_scale = 1.f, const float rope_theta = 1e4, cudaStream_t stream = nullptr) {
+    const float rope_scale = 1.f, const float rope_theta = 1e4, gpuStream_t stream = nullptr) {
   const float sm_scale = maybe_sm_scale.value_or(1.f / std::sqrt(float(head_dim)));
   const MaskMode mask_mode = causal ? MaskMode::kCausal : MaskMode::kNone;
   auto [qo_stride_n, qo_stride_h, kv_stride_n, kv_stride_h] =
@@ -434,16 +434,16 @@ cudaError_t BatchPrefillWithRaggedKVCacheWrapper(
                       params, handler->GetTmpV<DTypeO>(), handler->GetTmpS(), stream);
                 });
               })})})});
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <typename DTypeQ, typename DTypeKV, typename DTypeO, typename IdType>
-cudaError_t BatchPrefillWithPagedKVCacheWrapper(
+gpuError_t BatchPrefillWithPagedKVCacheWrapper(
     BatchPrefillHandler* handler, DTypeQ* q, IdType* qo_indptr, IdType* q_offset,
     paged_kv_t<DTypeKV, IdType> paged_kv, DTypeO* o, float* lse, uint32_t num_qo_heads,
     bool causal = true, PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
     bool allow_fp16_qk_reduction = false, std::optional<float> maybe_sm_scale = std::nullopt,
-    float rope_scale = 1.f, float rope_theta = 1e4, cudaStream_t stream = nullptr) {
+    float rope_scale = 1.f, float rope_theta = 1e4, gpuStream_t stream = nullptr) {
   const float sm_scale = maybe_sm_scale.value_or(1.f / std::sqrt(float(paged_kv.head_dim)));
   const uint32_t num_kv_heads = paged_kv.num_heads;
   const uint32_t head_dim = paged_kv.head_dim;
@@ -486,22 +486,22 @@ cudaError_t BatchPrefillWithPagedKVCacheWrapper(
                                         stream);
                 })
               })})})});
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
-cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                              typename AttentionVariant::DTypeO* tmp,
-                                              cudaStream_t stream);
+gpuError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                             typename AttentionVariant::DTypeO* tmp,
+                                             gpuStream_t stream);
 
 template <typename DTypeQ, typename DTypeKV, typename DTypeO>
-cudaError_t SingleDecodeWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* o, DTypeO* tmp,
-                                    uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t seq_len,
-                                    uint32_t head_dim, QKVLayout kv_layout = QKVLayout::kNHD,
-                                    PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
-                                    std::optional<float> maybe_sm_scale = std::nullopt,
-                                    float rope_scale = 1.f, float rope_theta = 1e4,
-                                    cudaStream_t stream = nullptr) {
+gpuError_t SingleDecodeWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* o, DTypeO* tmp,
+                                   uint32_t num_qo_heads, uint32_t num_kv_heads, uint32_t seq_len,
+                                   uint32_t head_dim, QKVLayout kv_layout = QKVLayout::kNHD,
+                                   PosEncodingMode pos_encoding_mode = PosEncodingMode::kNone,
+                                   std::optional<float> maybe_sm_scale = std::nullopt,
+                                   float rope_scale = 1.f, float rope_theta = 1e4,
+                                   gpuStream_t stream = nullptr) {
   float sm_scale = maybe_sm_scale.value_or(1.f / std::sqrt(float(head_dim)));
   if (num_qo_heads % num_kv_heads != 0) {
     std::ostringstream err_msg;
@@ -524,7 +524,7 @@ cudaError_t SingleDecodeWithKVCache(DTypeQ* q, DTypeKV* k, DTypeKV* v, DTypeO* o
         SingleDecodeWithKVCacheDispatched<HEAD_DIM, POS_ENCODING_MODE, AttentionVariant>(
             params, tmp, stream);
       })});
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 /*!

@@ -1,5 +1,6 @@
 /**
- * NB This approach is borrowed and extended from the 3rd-party Eigen implementation in PyTorch.
+ * !!! NB !!!
+ * This approach is borrowed and extended from the 3rd-party Eigen wrapper/implementation in PyTorch.
  * It is NOT smart, NOT extensible, NOT flexiable, NOT adaptive,
  * but straightforward and good for early iterations of development.
  */
@@ -39,9 +40,13 @@
 #define gpuDeviceGetAttribute hipDeviceGetAttribute
 #define gpuFuncSetAttribute hipFuncSetAttribute
 #define gpuLaunchKernel hipLaunchKernel
+#define gpuFreeHost hipHostFree
+#define gpuMallocHost hipHostMalloc
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize hipFuncAttributeMaxDynamicSharedMemorySize
 #define gpuDevAttrMultiProcessorCount hipDeviceAttributeMultiprocessorCount
+#define gpuDevAttrComputeCapabilityMajor hipDeviceAttributeComputeCapabilityMajor
+#define gpuDevAttrComputeCapabilityMinor hipDeviceAttributeComputeCapabilityMinor
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __hip_fp8_e4m3_fnuz
 #define __gpu_fp8_e5m2 __hip_fp8_e5m2_fnuz
@@ -91,9 +96,13 @@
 #define gpuDeviceGetAttribute cudaDeviceGetAttribute
 #define gpuFuncSetAttribute cudaFuncSetAttribute
 #define gpuLaunchKernel cudaLaunchKernel
+#define gpuFreeHost cudaFreeHost
+#define gpuMallocHost cudaMallocHost
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor cudaOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize cudaFuncAttributeMaxDynamicSharedMemorySize
 #define gpuDevAttrMultiProcessorCount cudaDevAttrMultiProcessorCount
+#define gpuDevAttrComputeCapabilityMajor cudaDevAttrComputeCapabilityMajor
+#define gpuDevAttrComputeCapabilityMinor cudaDevAttrComputeCapabilityMinor
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __nv_fp8_e4m3
 #define __gpu_fp8_e5m2 __nv_fp8_e5m2

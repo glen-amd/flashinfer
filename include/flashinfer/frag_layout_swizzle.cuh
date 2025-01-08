@@ -25,7 +25,12 @@
 #include <cstdint>
 
 __device__ __forceinline__ uint32_t frag_layout_swizzle_16b_to_8b(uint32_t x) {
+#ifdef __HIPCC__
+  // FIXME: May miss the synchronization across threads in the warp.
+  uint32_t tmp = __shfl_xor(x, 0x1);
+#else
   uint32_t tmp = __shfl_xor_sync(0xffffffff, x, 0x1);
+#endif
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x1) == 0) ? 0x5410 : 0x3276);
   tmp = __shfl_xor_sync(0xffffffff, x, 0x2);
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x2) == 0) ? 0x5410 : 0x3276);
@@ -33,11 +38,24 @@ __device__ __forceinline__ uint32_t frag_layout_swizzle_16b_to_8b(uint32_t x) {
 }
 
 __device__ __forceinline__ uint32_t frag_layout_swizzle_16b_to_8b_trans(uint32_t x) {
+#ifdef __HIPCC__
+  // FIXME: May miss the synchronization across threads in the warp.
+  uint32_t tmp = __shfl_xor(x, 0x4);
+#else
   uint32_t tmp = __shfl_xor_sync(0xffffffff, x, 0x4);
+#endif
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x4) == 0) ? 0x6420 : 0x3175);
+#ifdef __HIPCC__
+  tmp = __shfl_xor(x, 0x8);
+#else
   tmp = __shfl_xor_sync(0xffffffff, x, 0x8);
+#endif
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x8) == 0) ? 0x5410 : 0x3276);
+#ifdef __HIPCC__
+  tmp = __shfl_xor(x, 0x10);
+#else
   tmp = __shfl_xor_sync(0xffffffff, x, 0x10);
+#endif
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x10) == 0) ? 0x5410 : 0x3276);
   return x;
 }

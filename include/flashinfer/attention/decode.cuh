@@ -222,8 +222,12 @@ __device__ __forceinline__ void sync_state(AttentionVariant variant, state_t<vec
  */
 template <PosEncodingMode pos_encoding_mode, uint32_t num_stages_smem, uint32_t tile_size_per_bdx,
           uint32_t vec_size, uint32_t bdx, uint32_t bdy, uint32_t bdz, typename AttentionVariant>
+#ifdef __HIPCC__
+__global__ void SingleDecodeWithKVCacheKernel(const typename AttentionVariant::ParamsT params) {
+#else
 __global__ void SingleDecodeWithKVCacheKernel(const __grid_constant__
                                               typename AttentionVariant::ParamsT params) {
+#endif
   using DTypeQ = typename AttentionVariant::DTypeQ;
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using DTypeO = typename AttentionVariant::DTypeO;
@@ -647,9 +651,9 @@ constexpr uint32_t get_heuristic_num_threads(uint32_t group_size, uint32_t sizeo
  * \return status Indicates whether CUDA calls are successful
  */
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
-cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                              typename AttentionVariant::DTypeO* tmp,
-                                              cudaStream_t stream) {
+gpuError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT params,
+                                             typename AttentionVariant::DTypeO* tmp,
+                                             gpuStream_t stream) {
   using DTypeQ = typename AttentionVariant::DTypeQ;
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using DTypeO = typename AttentionVariant::DTypeO;
@@ -675,7 +679,7 @@ cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT
           SingleDecodeWithKVCacheKernel<POS_ENCODING_MODE, NUM_STAGES_SMEM, tile_size_per_bdx,
                                         vec_size, bdx, bdy, bdz, AttentionVariant>;
       FLASHINFER_CUDA_CALL(
-          cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size));
+          gpuFuncSetAttribute(kernel, gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
       if (seq_len <= 256 || tmp == nullptr) {
         // no need to use partition-kv kernel
         dim3 nblks = dim3(1, num_kv_heads);
@@ -683,16 +687,16 @@ cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT
         params.kv_chunk_size = seq_len;
         void* args[] = {(void*)&params};
         FLASHINFER_CUDA_CALL(
-            cudaLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
+            gpuLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
       } else {
         // use partition-kv kernel
         int num_blocks_per_sm = 0;
         int num_sm = 0;
         int dev_id = 0;
-        FLASHINFER_CUDA_CALL(cudaGetDevice(&dev_id));
+        FLASHINFER_CUDA_CALL(gpuGetDevice(&dev_id));
         FLASHINFER_CUDA_CALL(
-            cudaDeviceGetAttribute(&num_sm, cudaDevAttrMultiProcessorCount, dev_id));
-        FLASHINFER_CUDA_CALL(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+            gpuDeviceGetAttribute(&num_sm, gpuDevAttrMultiProcessorCount, dev_id));
+        FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(
             &num_blocks_per_sm, kernel, num_threads, smem_size));
         uint32_t max_grid_size = uint32_t(num_blocks_per_sm) * uint32_t(num_sm);
         uint32_t max_num_kv_chunks = max_grid_size / num_kv_heads;
@@ -712,7 +716,7 @@ cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT
         params.kv_chunk_size = kv_chunk_size;
         void* args[] = {(void*)&params};
         FLASHINFER_CUDA_CALL(
-            cudaLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
+            gpuLaunchKernel((void*)kernel, nblks, nthrs, args, smem_size, stream));
         if constexpr (AttentionVariant::use_softmax) {
           FLASHINFER_CUDA_CALL(
               MergeStates(tmp, tmp_lse, o, nullptr, num_chunks, 1, num_qo_heads, HEAD_DIM, stream));
@@ -722,7 +726,7 @@ cudaError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT
       }
     });
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
@@ -1106,7 +1110,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::P
                                                      num_qo_heads, HEAD_DIM_CKV, stream));
     }
   });
-  return cudaSuccess;
+  return gpuSuccess;
 }
 
 }  // namespace flashinfer

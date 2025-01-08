@@ -282,8 +282,8 @@ inline std::pair<int, int> GetCudaComputeCapability() {
   int device_id = 0;
   gpuGetDevice(&device_id);
   int major = 0, minor = 0;
-  gpuDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, device_id);
-  gpuDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMinor, device_id);
+  gpuDeviceGetAttribute(&major, gpuDevAttrComputeCapabilityMajor, device_id);
+  gpuDeviceGetAttribute(&minor, gpuDevAttrComputeCapabilityMinor, device_id);
   return std::make_pair(major, minor);
 }
 
@@ -291,7 +291,7 @@ template <typename T>
 inline void DebugPrintCUDAArray(T* device_ptr, size_t size, std::string prefix = "") {
   std::vector<T> host_array(size);
   std::cout << prefix;
-  cudaMemcpy(host_array.data(), device_ptr, size * sizeof(T), cudaMemcpyDeviceToHost);
+  gpuMemcpy(host_array.data(), device_ptr, size * sizeof(T), gpuMemcpyDeviceToHost);
   for (size_t i = 0; i < size; ++i) {
     std::cout << host_array[i] << " ";
   }
