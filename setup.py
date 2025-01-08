@@ -195,10 +195,12 @@ if enable_aot:
         cutlass.resolve() / "include",  # for group gemm
         cutlass.resolve() / "tools" / "util" / "include",
     ]
-    cxx_flags = [
-        "-O3",
-        "-Wno-switch-bool",
-    ]
+    cxx_flags = ["-O3", "-g"]
+    if check_hip_availability():
+        # FIXME
+        cxx_flags += ["-I/opt/rocm/include"]
+    else:
+        cxx_flags += ["-Wno-switch-bool"]
     nvcc_flags = [
         "-O3",
         "-std=c++17",
@@ -208,8 +210,17 @@ if enable_aot:
         "-use_fast_math",
     ]
     sm90a_flags = "-gencode arch=compute_90a,code=sm_90a".split()
-    # TODO: ROCm/HIP flags
-    hipcc_flags = []
+    # FIXME: ROCm/HIP compiler flags
+    hipcc_flags = [
+        "-O3",
+        "-std=c++17",
+        "--offload-arch=gfx942",
+        "-ffast-math",
+        "-I/opt/rocm/include",
+        "-L/opt/rocm/lib",
+        "-lamdhip64",
+        "-D__HIP_PLATFORM_AMD__",
+    ]
     kernel_sources = [
         "csrc/bmm_fp8.cu",
         "csrc/cascade.cu",
@@ -231,18 +242,18 @@ if enable_aot:
         "csrc/group_gemm_sm90.cu",
         "csrc/flashinfer_gemm_sm90_ops.cu",
     ]
-    decode_sources = list(gen_dir.glob("*decode_head*.cu"))
+    # decode_sources = list(gen_dir.glob("*decode_head*.cu"))
+    decode_sources = list(gen_dir.glob("batch_*decode_head*.cu"))
     prefill_sources = list(gen_dir.glob("*prefill_head*.cu"))
     ext_modules = [
         torch_cpp_ext.CUDAExtension(
             name="flashinfer._kernels",
             # sources=kernel_sources + decode_sources + prefill_sources,
-            sources=["csrc/batch_decode.cu"],
+            sources=["csrc/batch_decode.cu"] + decode_sources,
             include_dirs=include_dirs,
             extra_compile_args={
                 "cxx": cxx_flags,
-                # "nvcc": nvcc_flags,
-                "nvcc": hipcc_flags,
+                "nvcc": hipcc_flags if check_hip_availability() else nvcc_flags,
             },
         ),
         # torch_cpp_ext.CUDAExtension(

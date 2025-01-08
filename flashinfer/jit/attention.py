@@ -162,7 +162,7 @@ def gen_batch_decode_module(*args):
         path = gen_directory / f"{uri}{suffix}"
         source_paths.append(path)
         write_if_different(path, source)
-    return load_cuda_ops(uri, source_paths)
+    return load_cuda_ops(uri, source_paths, verbose=True)
 
 
 def get_batch_decode_mla_sources(
