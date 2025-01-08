@@ -32,7 +32,11 @@ __device__ __forceinline__ uint32_t frag_layout_swizzle_16b_to_8b(uint32_t x) {
   uint32_t tmp = __shfl_xor_sync(0xffffffff, x, 0x1);
 #endif
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x1) == 0) ? 0x5410 : 0x3276);
+#ifdef __HIPCC__
+  tmp = __shfl_xor(x, 0x2);
+#else
   tmp = __shfl_xor_sync(0xffffffff, x, 0x2);
+#endif
   x = __byte_perm(x, tmp, ((threadIdx.x & 0x2) == 0) ? 0x5410 : 0x3276);
   return x;
 }

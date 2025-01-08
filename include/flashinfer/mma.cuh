@@ -61,6 +61,26 @@ namespace mma {
 #define FLASHINFER_RUNTIME_ASSERT(x) assert(0 && x)
 #endif
 
+#ifdef __HIPCC__
+/*
+Hacky workaround for the error below:
+  /home/git_repos/glen-amd/flashinfer/include/flashinfer/attention/../mma_hip.cuh:204:14: error: use of undeclared identifier '__shfl_sync'
+    204 |     word.x = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4);
+        |              ^
+  /home/git_repos/glen-amd/flashinfer/include/flashinfer/attention/../mma_hip.cuh:205:14: error: use of undeclared identifier '__shfl_sync'
+    205 |     word.y = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4 + 1);
+        |              ^
+  /home/git_repos/glen-amd/flashinfer/include/flashinfer/attention/../mma_hip.cuh:206:14: error: use of undeclared identifier '__shfl_sync'
+    206 |     word.z = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4 + 2);
+        |              ^
+  /home/git_repos/glen-amd/flashinfer/include/flashinfer/attention/../mma_hip.cuh:207:14: error: use of undeclared identifier '__shfl_sync'
+    207 |     word.w = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4 + 3);
+        |              ^
+*/
+// Borrowed from "hipamd/include/hip/amd_detail/amd_hip_bf16.h" in the clr Git repo
+}
+#endif
+
 enum class MMAMode {
   kInit = 0U,
   kInplaceUpdate = 1U,
@@ -200,10 +220,17 @@ __device__ __forceinline__ void stmatrix_m8n8x4(uint32_t* R, T* smem_ptr) {
   uint4 word;
 #pragma unroll
   for (uint32_t reg_id = 0; reg_id < 4; ++reg_id) {
+#ifdef __HIPCC__
+    word.x = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4);
+    word.y = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4 + 1);
+    word.z = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4 + 2);
+    word.w = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4 + 3);
+#else
     word.x = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4);
     word.y = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4 + 1);
     word.z = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4 + 2);
     word.w = __shfl_sync(0xffffffff, R[reg_id], (tx % 8) * 4 + 3);
+#endif
     if (tx / 8 == reg_id) {
       *(uint4*)smem_ptr = word;
     }
