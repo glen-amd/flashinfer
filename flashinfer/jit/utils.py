@@ -65,7 +65,7 @@ def parallel_load_modules(
 
 dtype_map = {
     torch.float16: "half",
-    torch.bfloat16: "nv_bfloat16",
+    torch.bfloat16: "__hip_bfloat16" if check_hip_availability() else "nv_bfloat16",
     torch.float8_e4m3fn: "__hip_fp8_e4m3_fnuz" if check_hip_availability() else "__nv_fp8_e4m3",
     torch.float8_e5m2: "__hip_fp8_e5m2_fnuz" if check_hip_availability() else "__nv_fp8_e5m2",
     torch.int8: "int8_t",
