@@ -1121,8 +1121,13 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::P
     auto kernel =
         BatchDecodeWithPagedKVCacheKernelMLA<NUM_STAGES_SMEM, vec_size_ckv, vec_size_kpe, bdx, bdy,
                                              bdz, tile_size_qo_heads, AttentionVariant>;
+#ifdef __HIPCC__
+    FLASHINFER_CUDA_CALL(
+        gpuFuncSetAttribute(reinterpret_cast<const void*>(kernel), gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
+#else
     FLASHINFER_CUDA_CALL(
         gpuFuncSetAttribute(kernel, gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
+#endif
 
     if (tmp_v == nullptr) {
       // do not use partition-kv kernel

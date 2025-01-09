@@ -540,7 +540,12 @@ gpuError_t MergeState(DTypeIn* v_a, float* s_a, DTypeIn* v_b, float* s_b, DTypeO
                       float* s_merged, uint32_t seq_len, uint32_t num_heads, uint32_t head_dim,
                       gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
+#ifdef __HIPCC__
+    constexpr uint32_t vec_size =
+        16U / sizeof(DTypeIn) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DTypeIn);
+#else
     constexpr uint32_t vec_size = std::max(16U / sizeof(DTypeIn), HEAD_DIM / 32U);
+#endif
     uint32_t bdx = HEAD_DIM / vec_size;
     uint32_t bdy = num_heads;
     dim3 nblks(seq_len);
@@ -572,7 +577,12 @@ gpuError_t MergeStateInPlace(DType* v, float* s, DType* v_other, float* s_other,
                              uint32_t num_heads, uint32_t head_dim, uint8_t* mask = nullptr,
                              gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
+#ifdef __HIPCC__
+    constexpr uint32_t vec_size =
+        16U / sizeof(DType) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DType);
+#else
     constexpr uint32_t vec_size = std::max(16U / sizeof(DType), HEAD_DIM / 32U);
+#endif
     uint32_t bdx = HEAD_DIM / vec_size;
     uint32_t bdy = num_heads;
     dim3 nblks(seq_len);
@@ -605,7 +615,12 @@ gpuError_t MergeStates(DTypeIn* v, float* s, DTypeO* v_merged, float* s_merged,
                        uint32_t num_index_sets, uint32_t seq_len, uint32_t num_heads,
                        uint32_t head_dim, gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
+#ifdef __HIPCC__
+    constexpr uint32_t vec_size =
+        16U / sizeof(DTypeIn) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DTypeIn);
+#else
     constexpr uint32_t vec_size = std::max(16U / sizeof(DTypeIn), HEAD_DIM / 32U);
+#endif
     constexpr uint32_t bdx = HEAD_DIM / vec_size;
     if (num_index_sets >= seq_len) {
       constexpr uint32_t num_threads = 128;
@@ -637,7 +652,12 @@ template <typename DTypeIn, typename DTypeO>
 gpuError_t AttentionSum(DTypeIn* v, DTypeO* v_sum, uint32_t num_index_sets, uint32_t seq_len,
                         uint32_t num_heads, uint32_t head_dim, gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
+#ifdef __HIPCC__
+    constexpr uint32_t vec_size =
+        16U / sizeof(DTypeIn) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DTypeIn);
+#else
     constexpr uint32_t vec_size = std::max(16U / sizeof(DTypeIn), HEAD_DIM / 32U);
+#endif
     constexpr uint32_t bdx = HEAD_DIM / vec_size;
     uint32_t bdy = num_heads;
     dim3 nblks(seq_len);
@@ -661,7 +681,13 @@ gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DType
   FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sms, gpuDevAttrMultiProcessorCount, dev_id));
 
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
+#ifdef __HIPCC__
+    constexpr uint32_t temp_1st = 16U / sizeof(DTypeIn);
+    constexpr uint32_t temp_2nd = HEAD_DIM / 32U;
+    constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
     constexpr uint32_t vec_size = std::max(16U / sizeof(DTypeIn), HEAD_DIM / 32U);
+#endif
     constexpr uint32_t bdx = HEAD_DIM / vec_size;
     constexpr uint32_t num_threads = 128;
     constexpr uint32_t bdy = num_threads / bdx;
@@ -670,8 +696,13 @@ gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DType
         num_smem_stages * bdy * head_dim * sizeof(DTypeIn) + num_threads * sizeof(float);
     auto kernel = PersistentVariableLengthMergeStatesKernel<vec_size, bdx, bdy, num_smem_stages,
                                                             DTypeIn, DTypeO, IdType>;
+#ifdef __HIPCC__
+    FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, reinterpret_cast<const void*>(kernel),
+                                                                      num_threads, smem_size));
+#else
     FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
                                                                       num_threads, smem_size));
+#endif
     num_blocks_per_sm = min(num_blocks_per_sm, ceil_div(max_seq_len * num_heads, num_sms));
 
     dim3 nblks(num_sms * num_blocks_per_sm);
