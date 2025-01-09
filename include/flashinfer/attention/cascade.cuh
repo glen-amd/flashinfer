@@ -16,12 +16,18 @@
 #ifndef FLASHINFER_CASCADE_CUH_
 #define FLASHINFER_CASCADE_CUH_
 
+#include "../gpu_defines_cuda_hip.h"
+
+#ifdef __HIPCC__
+#include <hip/hip_cooperative_groups.h>
+#include <hip/hip_fp16.h>
+#else
 #include <cooperative_groups.h>
+#endif
 
 #include "../cp_async.cuh"
 #include "../math.cuh"
 #include "../utils.cuh"
-#include "../gpu_defines_cuda_hip.h"
 #include "state.cuh"
 
 namespace flashinfer {
@@ -373,7 +379,11 @@ __global__ void PersistentVariableLengthMergeStatesKernel(
 
     if (num_index_sets == 0) {
       vec_t<DTypeO, vec_size> v;
+#ifdef __HIPCC__
+      v.fill(DTypeO(__float2half(0.f)));
+#else
       v.fill(DTypeO(0.f));
+#endif
       v.store(v_merged + (pos * num_heads + head_idx) * head_dim + tx * vec_size);
       if (s_merged != nullptr) {
         s_merged[pos * num_heads + head_idx] = -math::inf;
