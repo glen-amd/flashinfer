@@ -661,14 +661,26 @@ gpuError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT 
   const uint32_t num_kv_heads = params.num_kv_heads;
   const uint32_t seq_len = params.kv_len;
 
+#ifdef __HIPCC__
+  constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
+  constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
+  constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
   constexpr uint32_t vec_size = std::max(16UL / sizeof(DTypeKV), HEAD_DIM / 32UL);
+#endif
   constexpr uint32_t bdx = HEAD_DIM / vec_size;
   auto compute_capacity = GetCudaComputeCapability();
   static_assert(bdx <= 32U);
   DISPATCH_GQA_GROUP_SIZE(num_qo_heads / num_kv_heads, GROUP_SIZE, {
     constexpr uint32_t bdy = GROUP_SIZE;
+#ifdef __HIPCC__
+    constexpr uint32_t temp_1st = get_heuristic_num_threads(GROUP_SIZE, sizeof(DTypeKV));
+    constexpr uint32_t temp_2nd = bdx * bdy;
+    constexpr uint32_t num_threads = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
     constexpr uint32_t num_threads =
         std::max(get_heuristic_num_threads(GROUP_SIZE, sizeof(DTypeKV)), bdx * bdy);
+#endif
     constexpr uint32_t bdz = num_threads / (bdx * bdy);
     constexpr uint32_t tile_size_per_bdx = GROUP_SIZE == 1 ? (sizeof(DTypeKV) == 1 ? 2U : 8U) : 1U;
     DISPATCH_COMPUTE_CAP_DECODE_NUM_STAGES_SMEM(compute_capacity, NUM_STAGES_SMEM, {
@@ -731,8 +743,8 @@ gpuError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT 
 
 template <uint32_t HEAD_DIM, PosEncodingMode POS_ENCODING_MODE, typename AttentionVariant>
 gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::ParamsT params,
-                                                  typename AttentionVariant::DTypeO* tmp_v,
-                                                  float* tmp_s, gpuStream_t stream) {
+                                                 typename AttentionVariant::DTypeO* tmp_v,
+                                                 float* tmp_s, gpuStream_t stream) {
   using DTypeQ = typename AttentionVariant::DTypeQ;
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using DTypeO = typename AttentionVariant::DTypeO;
@@ -741,13 +753,23 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::Para
   const uint32_t num_kv_heads = params.paged_kv.num_heads;
   const uint32_t padded_batch_size = params.padded_batch_size;
 
+#ifdef __HIPCC__
+  constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
+  constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
+  constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
   constexpr uint32_t vec_size = std::max(16UL / sizeof(DTypeKV), HEAD_DIM / 32UL);
+#endif
   auto compute_capacity = GetCudaComputeCapability();
   constexpr uint32_t bdx = HEAD_DIM / vec_size;
   static_assert(bdx <= 32);
   DISPATCH_GQA_GROUP_SIZE(num_qo_heads / num_kv_heads, GROUP_SIZE, {
     constexpr uint32_t bdy = GROUP_SIZE;
+#ifdef __HIPCC__
+    constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
+#else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
+#endif
     constexpr uint32_t bdz = num_threads / (bdx * bdy);
     constexpr uint32_t tile_size_per_bdx = GROUP_SIZE == 1 ? (sizeof(DTypeKV) == 1 ? 2U : 4U) : 1U;
     DISPATCH_COMPUTE_CAP_DECODE_NUM_STAGES_SMEM(compute_capacity, NUM_STAGES_SMEM, {
@@ -1064,14 +1086,24 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::P
   const uint32_t num_qo_heads = params.num_qo_heads;
   const uint32_t padded_batch_size = params.padded_batch_size;
 
+#ifdef __HIPCC__
+  constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
+  constexpr uint32_t temp_2nd = HEAD_DIM_CKV / 32UL;
+  constexpr uint32_t vec_size_ckv = temp_1st < temp_2nd ? temp_2nd : temp_1st;
+#else
   constexpr uint32_t vec_size_ckv = std::max(16UL / sizeof(DTypeKV), HEAD_DIM_CKV / 32UL);
+#endif
   constexpr uint32_t bdx = HEAD_DIM_CKV / vec_size_ckv;
   constexpr uint32_t vec_size_kpe = HEAD_DIM_KPE / bdx;
 
   constexpr uint32_t bdy = 8;
   constexpr uint32_t tile_size_qo_heads = 2;
   constexpr uint32_t qo_heads_per_block = bdy * tile_size_qo_heads;
+#ifdef __HIPCC__
+  constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
+#else
   constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
+#endif
   constexpr uint32_t bdz = num_threads / (bdx * bdy);
   const uint32_t gdy = ceil_div(num_qo_heads, qo_heads_per_block);
 

@@ -16,7 +16,7 @@
 #ifndef FLASHINFER_PREFILL_CUH_
 #define FLASHINFER_PREFILL_CUH_
 
-#include <flashinfer/gpu_defines_cuda_hip.h>
+#include "../gpu_defines_cuda_hip.h"
 
 #ifdef __HIPCC__
 #include <hip/hip_cooperative_groups.h>
@@ -45,6 +45,36 @@
 #include "cascade.cuh"
 #include "mask.cuh"
 #include "variants.cuh"
+
+
+#ifdef __HIPCC__
+// TODO: Better place to put these custom functions.
+__device__ __hip_bfloat162 convert_half2_to_bfloat162(const __half2 h2) {
+  // Extract the two FP16 components.
+  __half h0 = __low2half(h2);  // Lower half of __half2.
+  __half h1 = __high2half(h2);  // Higher half of __half2.
+
+  // Manually convert to BF16 by truncating the mantissa.
+  __hip_bfloat16 bf0 = __float2bfloat16(__half2float(h0));
+  __hip_bfloat16 bf1 = __float2bfloat16(__half2float(h1));
+
+  // Combine the two BF16 components into a __hip_bfloat162.
+  return __hip_bfloat162(bf0, bf1);
+}
+
+__device__ __half2 convert_bfloat162_to_half2(const __hip_bfloat162 bf2) {
+  // Extract the two BF16 components.
+  __hip_bfloat16 bf0 = __low2bfloat16(bf2);
+  __hip_bfloat16 bf1 = __high2bfloat16(bf2);
+
+  // Convert BF16 to FP16.
+  __half h0 = __float2half(__bfloat162float(bf0));
+  __half h1 = __float2half(__bfloat162float(bf1));
+
+  // Combine into a __half2.
+  return __halves2half2(h0, h1);
+}
+#endif
 
 namespace flashinfer {
 
@@ -757,15 +787,31 @@ __device__ __forceinline__ void update_mdo_states(AttentionVariant variant,
           m_prev[j] = m[mma_q][j];
 #pragma unroll
           for (uint32_t mma_kv = 0; mma_kv < NUM_MMA_KV; ++mma_kv) {
+#ifdef __HIPCC__
+            __hip_bf162 temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2]),
+                                             convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2 + 4]));
+            half2 m_local = convert_bfloat162_to_half2(temp_bf162);
+#else
             half2 m_local = __hmax2(*(half2*)&s_frag[mma_q][mma_kv][j * 2],
                                     *(half2*)&s_frag[mma_q][mma_kv][j * 2 + 4]);
+#endif
             m[mma_q][j] = __hmax(m[mma_q][j], __hmax(m_local.x, m_local.y));
           }
         }
+#ifdef __HIPCC__
+        __hip_bfloat162 temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&m[mma_q]),
+                                             convert_half2_to_bfloat162(math::shfl_xor_sync(*(half2*)&m[mma_q], 0x2)));
+        *(half2*)&m[mma_q] = convert_bfloat162_to_half2(temp_bf162);
+
+        temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&m[mma_q]),
+                             convert_half2_to_bfloat162(math::shfl_xor_sync(*(half2*)&m[mma_q], 0x1)));
+        *(half2*)&m[mma_q] = convert_bfloat162_to_half2(temp_bf162);
+#else
         *(half2*)&m[mma_q] =
             __hmax2(*(half2*)&m[mma_q], math::shfl_xor_sync(*(half2*)&m[mma_q], 0x2));
         *(half2*)&m[mma_q] =
             __hmax2(*(half2*)&m[mma_q], math::shfl_xor_sync(*(half2*)&m[mma_q], 0x1));
+#endif
 #pragma unroll
         for (uint32_t j = 0; j < 2; ++j) {
           float o_scale = math::ptx_exp2(float(m_prev[j] - m[mma_q][j]));
@@ -1121,10 +1167,14 @@ template <MaskMode MASK_MODE, PosEncodingMode POS_ENCODING_MODE, uint32_t NUM_MM
 __global__
 __launch_bounds__(NUM_WARPS_Q* NUM_WARPS_KV* WARP_SIZE) void SinglePrefillWithKVCacheKernel(
     const uint_fastdiv group_size,
+#ifdef __HIPCC__
+    const typename AttentionVariant::ParamsT params) {
+#else
     const __grid_constant__ typename AttentionVariant::ParamsT params) {
+#endif
   using DTypeQ = typename AttentionVariant::DTypeQ;
 #if (__CUDA_ARCH__ < 800)
-  if constexpr (std::is_same_v<DTypeQ, nv_bfloat16>) {
+  if constexpr (std::is_same_v<DTypeQ, gpu_bfloat16>) {
     FLASHINFER_RUNTIME_ASSERT("Prefill kernels do not support bf16 on sm75.");
   } else {
 #endif
@@ -1530,10 +1580,14 @@ template <MaskMode MASK_MODE, PosEncodingMode POS_ENCODING_MODE, uint32_t NUM_MM
 __global__
 __launch_bounds__(NUM_WARPS_Q* NUM_WARPS_KV* WARP_SIZE) void BatchPrefillWithRaggedKVCacheKernel(
     const uint_fastdiv group_size,
+#ifdef __HIPCC__
+    const typename AttentionVariant::ParamsT params) {
+#else
     const __grid_constant__ typename AttentionVariant::ParamsT params) {
+#endif
   using DTypeQ = typename AttentionVariant::DTypeQ;
 #if (__CUDA_ARCH__ < 800)
-  if constexpr (std::is_same_v<DTypeQ, nv_bfloat16>) {
+  if constexpr (std::is_same_v<DTypeQ, gpu_bfloat16>) {
     FLASHINFER_RUNTIME_ASSERT("Prefill kernels do not support bf16 on sm75.");
   } else {
 #endif
@@ -1824,10 +1878,14 @@ template <MaskMode MASK_MODE, PosEncodingMode POS_ENCODING_MODE, uint32_t NUM_MM
 __global__
 __launch_bounds__(NUM_WARPS_Q* NUM_WARPS_KV* WARP_SIZE) void BatchPrefillWithPagedKVCacheKernel(
     const uint_fastdiv group_size,
+#ifdef __HIPCC__
+    const typename AttentionVariant::ParamsT params) {
+#else
     const __grid_constant__ typename AttentionVariant::ParamsT params) {
+#endif
   using DTypeQ = typename AttentionVariant::DTypeQ;
 #if (__CUDA_ARCH__ < 800)
-  if constexpr (std::is_same_v<DTypeQ, nv_bfloat16>) {
+  if constexpr (std::is_same_v<DTypeQ, gpu_bfloat16>) {
     FLASHINFER_RUNTIME_ASSERT("Prefill kernels do not support bf16 on sm75.");
   } else {
 #endif
