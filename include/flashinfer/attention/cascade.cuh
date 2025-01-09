@@ -25,6 +25,9 @@
 #include <cooperative_groups.h>
 #endif
 
+#include <iostream>
+#include <typeinfo>
+
 #include "../cp_async.cuh"
 #include "../math.cuh"
 #include "../utils.cuh"
@@ -380,6 +383,7 @@ __global__ void PersistentVariableLengthMergeStatesKernel(
     if (num_index_sets == 0) {
       vec_t<DTypeO, vec_size> v;
 #ifdef __HIPCC__
+      std::cerr << "DTypeO is: " << typeid(DTypeO).name() << std::endl;
       // v.fill(DTypeO(__float2half(0.f)));
       v.fill(DTypeO(__float2bfloat16(0.f)));
 #else
