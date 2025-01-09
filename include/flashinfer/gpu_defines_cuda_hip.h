@@ -58,6 +58,7 @@
 #define __gpu_fp8x4_e4m3 __hip_fp8x4_e4m3_fnuz
 #define __gpu_fp8x4_e5m2 __hip_fp8x4_e5m2_fnuz
 // Bfloat16 Precision Device types
+// https://github.com/ROCm/ROCm/issues/2534
 // #define gpu_bfloat16 hip_bfloat16
 #define gpu_bfloat16 __hip_bfloat16
 #define __gpu_bfloat16 __hip_bfloat16
