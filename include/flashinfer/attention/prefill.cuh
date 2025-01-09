@@ -788,8 +788,8 @@ __device__ __forceinline__ void update_mdo_states(AttentionVariant variant,
 #pragma unroll
           for (uint32_t mma_kv = 0; mma_kv < NUM_MMA_KV; ++mma_kv) {
 #ifdef __HIPCC__
-            __hip_bf162 temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2]),
-                                             convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2 + 4]));
+            __hip_bfloat162 temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2]),
+                                                 convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2 + 4]));
             half2 m_local = convert_bfloat162_to_half2(temp_bf162);
 #else
             half2 m_local = __hmax2(*(half2*)&s_frag[mma_q][mma_kv][j * 2],
