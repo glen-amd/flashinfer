@@ -273,7 +273,7 @@ __global__ void SingleDecodeWithKVCacheKernel(const __grid_constant__
                                                 freq, seq_len - 1);
   } else {
     // do not apply rotary embedding to q matrix
-    q_vec.cast_load<DTypeQ>(q + params.get_q_elem_offset(0, qo_head_idx, tx * vec_size));
+    q_vec.cast_load(q + params.get_q_elem_offset(0, qo_head_idx, tx * vec_size));
   }
   // multiple q_vec by sm_scale
 #pragma unroll
