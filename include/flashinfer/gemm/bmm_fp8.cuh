@@ -52,7 +52,7 @@
 #else
 #define FLASHINFER_CUBLAS_CALL(EXPR)  \
   {                                   \
-    gpuError_t e = (EXPR);           \
+    gpuError_t e = (EXPR);            \
     if (e != CUBLAS_STATUS_SUCCESS) { \
       return e;                       \
     }                                 \

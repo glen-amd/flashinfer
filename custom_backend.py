@@ -4,6 +4,9 @@ from pathlib import Path
 from setuptools import build_meta as orig
 from setuptools.build_meta import *  # noqa: F403
 
+# FIXME
+from flashinfer.utils import check_hip_availability
+
 
 def _get_requires_for_build():
     return (
@@ -36,7 +39,9 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
                 dst.rmdir()
         dst.symlink_to(src, target_is_directory=True)
 
-    ln("3rdparty/cutlass", "cutlass")
+    # FIXME
+    if not check_hip_availability():
+        ln("3rdparty/cutlass", "cutlass")
     ln("csrc", "csrc")
     ln("include", "include")
     return orig.build_editable(wheel_directory, config_settings, metadata_directory)
