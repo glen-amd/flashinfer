@@ -381,7 +381,8 @@ __global__ void PersistentVariableLengthMergeStatesKernel(
       vec_t<DTypeO, vec_size> v;
 #ifdef __HIPCC__
       // v.fill(DTypeO(__float2half(0.f)));
-      v.fill(DTypeO(__float2bfloat16(0.f)));
+      // v.fill(DTypeO(__float2bfloat16(0.f)));
+      v.fill(DTypeO(0.f));
 #else
       v.fill(DTypeO(0.f));
 #endif
