@@ -591,6 +591,40 @@ struct vec_cast<half, __gpu_fp8_e5m2> {
   }
 };
 
+// The ugly code below is subject to be eliminated.
+#ifdef __HIPCC__
+template <>
+struct vec_cast<float, __hip_bfloat16> {
+  template <size_t vec_size>
+  FLASHINFER_INLINE static void cast(float* dst, const __hip_bfloat16* src) {
+    if constexpr (vec_size == 1) {
+      dst[0] = (float)src[0];
+    } else {
+#pragma unroll
+      for (size_t i = 0; i < vec_size / 2; ++i) {
+        ((float2*)dst)[i] = __bfloat1622float2(((__hip_bfloat162*)src)[i]);
+      }
+    }
+  }
+};
+#else
+template <>
+struct vec_cast<float, nv_bfloat16> {
+  template <size_t vec_size>
+  FLASHINFER_INLINE static void cast(float* dst, const nv_bfloat16* src) {
+    if constexpr (vec_size == 1) {
+      dst[0] = (float)src[0];
+    } else {
+#pragma unroll
+      for (size_t i = 0; i < vec_size / 2; ++i) {
+        ((float2*)dst)[i] = __bfloat1622float2(((nv_bfloat162*)src)[i]);
+      }
+    }
+  }
+};
+#endif
+
+#if 0
 template <>
 struct vec_cast<float, gpu_bfloat16> {
   template <size_t vec_size>
@@ -605,6 +639,7 @@ struct vec_cast<float, gpu_bfloat16> {
     }
   }
 };
+#endif
 
 template <>
 struct vec_cast<gpu_bfloat16, float> {
