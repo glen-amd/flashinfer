@@ -34,7 +34,7 @@ def get_cu_file_str(
     idtype,
 ):
     content = """#include <flashinfer/attention_impl.cuh>
-#include <flashinfer/gpu_defines_cuda_hip.h">
+#include <flashinfer/gpu_defines_cuda_hip.h>
 
 namespace flashinfer {{
 
