@@ -5,7 +5,7 @@ from setuptools import build_meta as orig
 from setuptools.build_meta import *  # noqa: F403
 
 # FIXME
-from flashinfer.utils import check_hip_availability
+# from flashinfer.utils import check_hip_availability
 
 
 def _get_requires_for_build():
@@ -40,8 +40,9 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
         dst.symlink_to(src, target_is_directory=True)
 
     # FIXME
-    if not check_hip_availability():
-        ln("3rdparty/cutlass", "cutlass")
+    # if not check_hip_availability():
+    #     ln("3rdparty/cutlass", "cutlass")
+    ln("3rdparty/cutlass", "cutlass")
     ln("csrc", "csrc")
     ln("include", "include")
     return orig.build_editable(wheel_directory, config_settings, metadata_directory)
