@@ -18,11 +18,11 @@
 
 #include <vector>
 
+#include "gpu_defines_cuda_hip.h"
 #include "fastdiv.cuh"
 #include "layout.cuh"
 #include "utils.cuh"
 #include "vec_dtypes.cuh"
-#include "gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 

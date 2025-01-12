@@ -23,6 +23,7 @@ from .env import FLASHINFER_GEN_SRC_DIR
 from .utils import write_if_different
 
 activation_templ = r"""
+#include <flashinfer/gpu_defines_cuda_hip.h>
 #include <flashinfer/activation.cuh>
 #include "pytorch_extension_utils.h"
 
@@ -37,7 +38,7 @@ void {{ func_name }}(at::Tensor& out, at::Tensor& input, int64_t cuda_stream) {
   int64_t num_tokens = input.numel() / input.size(-1);
   dim3 grid(num_tokens);
 
-  cudaStream_t stream = reinterpret_cast<cudaStream_t>(cuda_stream);
+  gpuStream_t stream = reinterpret_cast<gpuStream_t>(cuda_stream);
   DISPATCH_PYTORCH_DTYPE_TO_CTYPE_FP16(input.scalar_type(), c_type, [&] {
     uint32_t vec_size = 16 / sizeof(c_type);
     dim3 block(std::min(d / vec_size, 1024U));

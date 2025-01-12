@@ -17,7 +17,7 @@
 
 // NOTE(Zihao): only include minimal headers to accelerate compilation
 #include <flashinfer/gpu_defines_cuda_hip.h>
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__))
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>

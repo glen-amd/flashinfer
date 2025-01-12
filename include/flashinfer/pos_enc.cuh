@@ -21,11 +21,11 @@
 #include <iostream>
 #include <string>
 
+#include "gpu_defines_cuda_hip.h"
 #include "layout.cuh"
 #include "math.cuh"
 #include "utils.cuh"
 #include "vec_dtypes.cuh"
-#include "gpu_defines_cuda_hip.h"
 
 namespace flashinfer {
 

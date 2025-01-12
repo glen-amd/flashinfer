@@ -8,7 +8,7 @@
 #define FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 
 // To workaround some unexpected HIPify behavior
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__))
 
 #define gpuStream_t hipStream_t
 #define gpuDeviceProp_t hipDeviceProp_t

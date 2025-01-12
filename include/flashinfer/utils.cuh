@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <type_traits>
 
 #include "exception.h"
 
@@ -328,6 +329,19 @@ __device__ __forceinline__ uint32_t dim4_offset(const uint32_t& dim_c, const uin
                                                 const uint32_t& idx_a) {
   return ((idx_d * dim_c + idx_c) * dim_b + idx_b) * dim_a + idx_a;
 }
+
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__))
+template <typename T>
+__device__ __host__ T convert_float_to_16bits(float val) {
+  if constexpr (std::is_same_v<T, __half>) {
+    return __float2half(0.f);
+  } else if constexpr (std::is_same_v<T, __hip_bfloat16>) {
+    return __float2bfloat16(0.f);
+  } else {
+    return val;
+  }
+}
+#endif
 
 }  // namespace flashinfer
 

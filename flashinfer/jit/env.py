@@ -32,6 +32,7 @@ def _get_workspace_dir_name() -> pathlib.Path:
                     "ignore", r".*PYTORCH_ROCM_ARCH.*", module="torch"
                 )
                 # E.g., allowed archs ["native", "gfx90a", "gfx940", "gfx941", "gfx942"]
+                # https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
                 flags = _get_rocm_arch_flags()
                 arch = "_".join(sorted(set(re.findall(r"\-\-offload\-arch=(\w+)", "".join(flags)))))
             else:

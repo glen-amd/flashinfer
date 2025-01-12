@@ -151,7 +151,11 @@ __device__ __forceinline__ void threadblock_sum(vec_t<float, vec_size>& v, DType
   const uint32_t tx = threadIdx.x, ty = threadIdx.y;
   constexpr uint32_t head_dim = vec_size * bdx;
   v.cast_store(v_smem + ty * head_dim + tx * vec_size);
+#ifdef __HIPCC__
+  v.fill(DTypeIn(convert_float_to_16bits<DTypeIn>(0.f)));
+#else
   v.fill(DTypeIn(0.f));
+#endif
   __syncthreads();
 
 #pragma unroll
@@ -174,7 +178,11 @@ __global__ void AttentionSumKernel(DTypeIn* __restrict__ V, DTypeO* __restrict__
 
   if (num_index_sets == 0) {
     vec_t<DTypeO, vec_size> v;
+#ifdef __HIPCC__
+    v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f)));
+#else
     v.fill(DTypeO(0.f));
+#endif
     v.store(v_sum + (pos * num_heads + head_idx) * head_dim + tx * vec_size);
     return;
   }
@@ -212,7 +220,11 @@ __global__ void MergeStatesKernel(DTypeIn* __restrict__ V, float* __restrict__ S
 
   if (num_index_sets == 0) {
     vec_t<DTypeO, vec_size> v;
+#ifdef __HIPCC__
+    v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f));
+#else
     v.fill(DTypeO(0.f));
+#endif
     v.store(v_merged + (pos * num_heads + head_idx) * head_dim + tx * vec_size);
     if (s_merged != nullptr) {
       s_merged[pos * num_heads + head_idx] = -math::inf;
@@ -485,7 +497,11 @@ __global__ void PersistentVariableLengthAttentionSumKernel(DTypeIn* __restrict__
 
     if (num_index_sets == 0) {
       vec_t<DTypeO, vec_size> v;
+#ifdef __HIPCC__
+      v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f)));
+#else
       v.fill(DTypeO(0.f));
+#endif
       v.store(v_sum + (pos * num_heads + head_idx) * head_dim + tx * vec_size);
       continue;
     }
