@@ -25,6 +25,8 @@
 #include <cooperative_groups.h>
 #endif
 
+#include <type_traits>
+
 #include "../cp_async.cuh"
 #include "../math.cuh"
 #include "../utils.cuh"
@@ -380,9 +382,13 @@ __global__ void PersistentVariableLengthMergeStatesKernel(
     if (num_index_sets == 0) {
       vec_t<DTypeO, vec_size> v;
 #ifdef __HIPCC__
-      // v.fill(DTypeO(__float2half(0.f)));
-      // v.fill(DTypeO(__float2bfloat16(0.f)));
-      v.fill(DTypeO(0.f));
+      if constexpr (std::is_same_v<DTypeO, __half>) {
+        v.fill(DTypeO(__float2half(0.f)));
+      } else if constexpr (std::is_same_v<DTypeO, __hip_bfloat16>) {
+        v.fill(DTypeO(__float2bfloat16(0.f)));
+      } else {
+        v.fill(DTypeO(0.f));
+      }
 #else
       v.fill(DTypeO(0.f));
 #endif
