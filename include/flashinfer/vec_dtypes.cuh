@@ -591,40 +591,6 @@ struct vec_cast<half, __gpu_fp8_e5m2> {
   }
 };
 
-// The ugly code below is subject to be eliminated.
-#ifdef __HIPCC__
-template <>
-struct vec_cast<float, __hip_bfloat16> {
-  template <size_t vec_size>
-  FLASHINFER_INLINE static void cast(float* dst, const __hip_bfloat16* src) {
-    if constexpr (vec_size == 1) {
-      dst[0] = (float)src[0];
-    } else {
-#pragma unroll
-      for (size_t i = 0; i < vec_size / 2; ++i) {
-        ((float2*)dst)[i] = __bfloat1622float2(((__hip_bfloat162*)src)[i]);
-      }
-    }
-  }
-};
-#else
-template <>
-struct vec_cast<float, nv_bfloat16> {
-  template <size_t vec_size>
-  FLASHINFER_INLINE static void cast(float* dst, const nv_bfloat16* src) {
-    if constexpr (vec_size == 1) {
-      dst[0] = (float)src[0];
-    } else {
-#pragma unroll
-      for (size_t i = 0; i < vec_size / 2; ++i) {
-        ((float2*)dst)[i] = __bfloat1622float2(((nv_bfloat162*)src)[i]);
-      }
-    }
-  }
-};
-#endif
-
-#if 0
 template <>
 struct vec_cast<float, gpu_bfloat16> {
   template <size_t vec_size>
@@ -639,7 +605,6 @@ struct vec_cast<float, gpu_bfloat16> {
     }
   }
 };
-#endif
 
 template <>
 struct vec_cast<gpu_bfloat16, float> {
@@ -676,7 +641,11 @@ struct vec_t {
 template <typename src_float_t, typename tgt_float_t, size_t vec_size>
 FLASHINFER_INLINE void cast_from_impl(vec_t<tgt_float_t, vec_size>& dst,
                                       const vec_t<src_float_t, vec_size>& src) {
+#ifdef __HIPCC__
+  vec_cast<tgt_float_t, src_float_t>::template cast<vec_size>(
+#else
   vec_cast<tgt_float_t, src_float_t>::cast<vec_size>(
+#endif
       dst.ptr(), const_cast<vec_t<src_float_t, vec_size>*>(&src)->ptr());
 }
 
