@@ -34,28 +34,28 @@
 
 #define FLASHINFER_CUBLAS_CHECK(EXPR)                                           \
   {                                                                             \
-    cublasStatus_t e = (EXPR);                                                  \
-    FLASHINFER_CHECK(e == CUBLAS_STATUS_SUCCESS,                                \
+    gpublasStatus_t e = (EXPR);                                                 \
+    FLASHINFER_CHECK(e == GPUBLAS_STATUS_SUCCESS,                               \
                      "CUBLAS Error: " + std::string(cublasGetStatusString(e))); \
   }
 
 #ifndef NDEBUG
 #define FLASHINFER_CUBLAS_CALL(EXPR)                                                             \
   {                                                                                              \
-    cublasStatus_t e = (EXPR);                                                                   \
-    if (e != CUBLAS_STATUS_SUCCESS) {                                                            \
+    gpublasStatus_t e = (EXPR);                                                                  \
+    if (e != GPUBLAS_STATUS_SUCCESS) {                                                           \
       std::cerr << "CUBLAS Error: " << cublasGetStatusString(e) << " (" << e << ") " << __FILE__ \
                 << ": line " << __LINE__ << " at function " << #EXPR << std::endl;               \
       return e;                                                                                  \
     }                                                                                            \
   }
 #else
-#define FLASHINFER_CUBLAS_CALL(EXPR)  \
-  {                                   \
-    gpuError_t e = (EXPR);            \
-    if (e != CUBLAS_STATUS_SUCCESS) { \
-      return e;                       \
-    }                                 \
+#define FLASHINFER_CUBLAS_CALL(EXPR)   \
+  {                                    \
+    gpuError_t e = (EXPR);             \
+    if (e != GPUBLAS_STATUS_SUCCESS) { \
+      return e;                        \
+    }                                  \
   }
 #endif
 
@@ -63,7 +63,7 @@ namespace flashinfer {
 
 namespace bmm_fp8 {
 
-template <typename T, cublasStatus_t (*destructor)(T*)>
+template <typename T, gpublasStatus_t (*destructor)(T*)>
 struct CuBlasLtDeleter {
   void operator()(T* x) {
     if (x != nullptr) {
@@ -72,7 +72,7 @@ struct CuBlasLtDeleter {
   }
 };
 
-template <typename T, cublasStatus_t (*destructor)(T*)>
+template <typename T, gpublasStatus_t (*destructor)(T*)>
 class CuBlasLtDescriptor {
  public:
   T* descriptor() const { return descriptor_.get(); }
@@ -83,7 +83,7 @@ class CuBlasLtDescriptor {
 };
 
 class CuBlasLtMatmulDescriptor
-    : public CuBlasLtDescriptor<cublasLtMatmulDescOpaque_t, &cublasLtMatmulDescDestroy> {
+    : public CuBlasLtDescriptor<gpublasLtMatmulDescOpaque_t, &gpublasLtMatmulDescDestroy> {
  public:
   CuBlasLtMatmulDescriptor(cublasComputeType_t compute_type, cudaDataType_t scale_type) {
     cublasLtMatmulDesc_t raw_descriptor = nullptr;

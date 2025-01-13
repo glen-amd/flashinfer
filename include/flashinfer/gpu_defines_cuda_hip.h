@@ -14,6 +14,9 @@
 #define gpuStream_t hipStream_t
 #define gpuDeviceProp_t hipDeviceProp_t
 #define gpuError_t hipError_t
+#define gpublasStatus_t hipblasStatus_t
+#define gpublasLtMatmulDescOpaque_t hipblasLtMatmulDescOpaque_t
+#define GPUBLAS_STATUS_SUCCESS CUBLAS_STATUS_SUCCESS
 #define gpuSuccess hipSuccess
 #define gpuErrorNotReady hipErrorNotReady
 #define gpuGetDeviceCount hipGetDeviceCount
@@ -43,6 +46,7 @@
 #define gpuLaunchKernel hipLaunchKernel
 #define gpuFreeHost hipHostFree
 #define gpuMallocHost hipHostMalloc
+#define gpublasLtMatmulDescDestroy hipblasLtMatmulDescDestroy
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuDevAttrMaxSharedMemoryPerMultiprocessor hipDeviceAttributeMaxSharedMemoryPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize hipFuncAttributeMaxDynamicSharedMemorySize
@@ -72,6 +76,9 @@
 #define gpuStream_t cudaStream_t
 #define gpuDeviceProp_t cudaDeviceProp
 #define gpuError_t cudaError_t
+#define gpublasStatus_t cublasStatus_t
+#define gpublasLtMatmulDescOpaque_t cublasLtMatmulDescOpaque_t
+#define GPUBLAS_STATUS_SUCCESS HIPBLAS_STATUS_SUCCESS
 #define gpuSuccess cudaSuccess
 #define gpuErrorNotReady cudaErrorNotReady
 #define gpuGetDeviceCount cudaGetDeviceCount
@@ -101,6 +108,7 @@
 #define gpuLaunchKernel cudaLaunchKernel
 #define gpuFreeHost cudaFreeHost
 #define gpuMallocHost cudaMallocHost
+#define gpublasLtMatmulDescDestroy cublasLtMatmulDescDestroy
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor cudaOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuDevAttrMaxSharedMemoryPerMultiprocessor cudaDevAttrMaxSharedMemoryPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize cudaFuncAttributeMaxDynamicSharedMemorySize
