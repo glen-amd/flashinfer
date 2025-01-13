@@ -52,33 +52,33 @@ def warmup_jit():
         yield
 
 
-# @pytest.mark.parametrize("batch_size", [12, 17])
-@pytest.mark.parametrize("batch_size", [256])
-# @pytest.mark.parametrize("kv_len", [54, 97, 512])
-@pytest.mark.parametrize("kv_len", [54])
-# @pytest.mark.parametrize("page_size", [1, 8, 16])
-@pytest.mark.parametrize("page_size", [8])
-# @pytest.mark.parametrize("num_kv_heads", [4])
-@pytest.mark.parametrize("num_kv_heads", [8])
-# @pytest.mark.parametrize("num_qo_heads", [4, 32])
-@pytest.mark.parametrize("num_qo_heads", [8])
-# @pytest.mark.parametrize("head_dim", [128, 256])
-@pytest.mark.parametrize("head_dim", [128])
-# @pytest.mark.parametrize("kv_layout", ["HND", "NHD"])
-@pytest.mark.parametrize("kv_layout", ["NHD"])
-# @pytest.mark.parametrize("pos_encoding_mode", ["NONE", "ROPE_LLAMA", "ALIBI"])
-@pytest.mark.parametrize("pos_encoding_mode", ["NONE"])
-# @pytest.mark.parametrize("logits_soft_cap", [0.0, 30.0])
-@pytest.mark.parametrize("logits_soft_cap", [0.0])
-# @pytest.mark.parametrize("return_lse", [True, False])
-@pytest.mark.parametrize("return_lse", [False])
+@pytest.mark.parametrize("batch_size", [12, 17])
+# @pytest.mark.parametrize("batch_size", [256])
+@pytest.mark.parametrize("kv_len", [54, 97, 512])
+# @pytest.mark.parametrize("kv_len", [54])
+@pytest.mark.parametrize("page_size", [1, 8, 16])
+# @pytest.mark.parametrize("page_size", [8])
+@pytest.mark.parametrize("num_kv_heads", [4])
+# @pytest.mark.parametrize("num_kv_heads", [8])
+@pytest.mark.parametrize("num_qo_heads", [4, 32])
+# @pytest.mark.parametrize("num_qo_heads", [8])
+@pytest.mark.parametrize("head_dim", [128, 256])
+# @pytest.mark.parametrize("head_dim", [128])
+@pytest.mark.parametrize("kv_layout", ["HND", "NHD"])
+# @pytest.mark.parametrize("kv_layout", ["NHD"])
+@pytest.mark.parametrize("pos_encoding_mode", ["NONE", "ROPE_LLAMA", "ALIBI"])
+# @pytest.mark.parametrize("pos_encoding_mode", ["NONE"])
+@pytest.mark.parametrize("logits_soft_cap", [0.0, 30.0])
+# @pytest.mark.parametrize("logits_soft_cap", [0.0])
+@pytest.mark.parametrize("return_lse", [True, False])
+# @pytest.mark.parametrize("return_lse", [False])
 @pytest.mark.parametrize("q_dtype", [torch.float16])
 @pytest.mark.parametrize(
-    # "kv_dtype", [torch.float16, torch.float8_e4m3fn, torch.float8_e5m2]
-    "kv_dtype", [torch.float16]
-)
-# @pytest.mark.parametrize("contiguous_kv", [True, False])
-@pytest.mark.parametrize("contiguous_kv", [True])
+    "kv_dtype", [torch.float16, torch.float8_e4m3fn, torch.float8_e5m2]
+    # "kv_dtype", [torch.float16]
+ )
+@pytest.mark.parametrize("contiguous_kv", [True, False])
+# @pytest.mark.parametrize("contiguous_kv", [True])
 def test_batch_decode_with_paged_kv_cache(
     batch_size,
     kv_len,
