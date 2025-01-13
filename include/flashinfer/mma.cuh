@@ -16,12 +16,12 @@
 #ifndef FLASHINFER_MMA_CUH_
 #define FLASHINFER_MMA_CUH_
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_fp8.h>
@@ -61,7 +61,7 @@ namespace mma {
 #define FLASHINFER_RUNTIME_ASSERT(x) assert(0 && x)
 #endif
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 /*
 Hacky workaround for the error below:
   /home/git_repos/glen-amd/flashinfer/include/flashinfer/attention/../mma_hip.cuh:204:14: error: use of undeclared identifier '__shfl_sync'
@@ -219,7 +219,7 @@ __device__ __forceinline__ void stmatrix_m8n8x4(uint32_t* R, T* smem_ptr) {
   uint4 word;
 #pragma unroll
   for (uint32_t reg_id = 0; reg_id < 4; ++reg_id) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     word.x = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4);
     word.y = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4 + 1);
     word.z = __shfl(0xffffffff, R[reg_id], (tx % 8) * 4 + 2);

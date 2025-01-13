@@ -18,10 +18,10 @@
 
 #include "../gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hipblaslt.h>
 #include <hip/hip_fp8.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cublasLt.h>
 #include <cuda_fp8.h>
 #endif

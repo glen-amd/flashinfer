@@ -198,7 +198,7 @@ if enable_aot:
     cxx_flags = ["-O3", "-g"]
     if check_hip_availability():
         # FIXME
-        cxx_flags += ["-I/opt/rocm/include"]
+        cxx_flags += ["-I/opt/rocm/include", "-D__HIP_PLATFORM_AMD__"]
     else:
         cxx_flags += ["-Wno-switch-bool"]
     nvcc_flags = [

@@ -18,10 +18,11 @@
 
 #include "../gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_cooperative_groups.h>
 #include <hip/hip_fp16.h>
-#else
+#include <hip/hip_runtime_api.h>
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cooperative_groups.h>
 #endif
 
@@ -151,7 +152,7 @@ __device__ __forceinline__ void threadblock_sum(vec_t<float, vec_size>& v, DType
   const uint32_t tx = threadIdx.x, ty = threadIdx.y;
   constexpr uint32_t head_dim = vec_size * bdx;
   v.cast_store(v_smem + ty * head_dim + tx * vec_size);
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   v.fill(DTypeIn(convert_float_to_16bits<DTypeIn>(0.f)));
 #else
   v.fill(DTypeIn(0.f));
@@ -178,7 +179,7 @@ __global__ void AttentionSumKernel(DTypeIn* __restrict__ V, DTypeO* __restrict__
 
   if (num_index_sets == 0) {
     vec_t<DTypeO, vec_size> v;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f)));
 #else
     v.fill(DTypeO(0.f));
@@ -220,8 +221,8 @@ __global__ void MergeStatesKernel(DTypeIn* __restrict__ V, float* __restrict__ S
 
   if (num_index_sets == 0) {
     vec_t<DTypeO, vec_size> v;
-#ifdef __HIPCC__
-    v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f));
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
+    v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f)));
 #else
     v.fill(DTypeO(0.f));
 #endif
@@ -393,7 +394,7 @@ __global__ void PersistentVariableLengthMergeStatesKernel(
 
     if (num_index_sets == 0) {
       vec_t<DTypeO, vec_size> v;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
       if constexpr (std::is_same_v<DTypeO, __half>) {
         v.fill(DTypeO(__float2half(0.f)));
       } else if constexpr (std::is_same_v<DTypeO, __hip_bfloat16>) {
@@ -497,7 +498,7 @@ __global__ void PersistentVariableLengthAttentionSumKernel(DTypeIn* __restrict__
 
     if (num_index_sets == 0) {
       vec_t<DTypeO, vec_size> v;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
       v.fill(DTypeO(convert_float_to_16bits<DTypeO>(0.f)));
 #else
       v.fill(DTypeO(0.f));
@@ -574,7 +575,7 @@ gpuError_t MergeState(DTypeIn* v_a, float* s_a, DTypeIn* v_b, float* s_b, DTypeO
                       float* s_merged, uint32_t seq_len, uint32_t num_heads, uint32_t head_dim,
                       gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t vec_size =
         16U / sizeof(DTypeIn) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DTypeIn);
 #else
@@ -611,7 +612,7 @@ gpuError_t MergeStateInPlace(DType* v, float* s, DType* v_other, float* s_other,
                              uint32_t num_heads, uint32_t head_dim, uint8_t* mask = nullptr,
                              gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t vec_size =
         16U / sizeof(DType) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DType);
 #else
@@ -649,7 +650,7 @@ gpuError_t MergeStates(DTypeIn* v, float* s, DTypeO* v_merged, float* s_merged,
                        uint32_t num_index_sets, uint32_t seq_len, uint32_t num_heads,
                        uint32_t head_dim, gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t vec_size =
         16U / sizeof(DTypeIn) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DTypeIn);
 #else
@@ -686,7 +687,7 @@ template <typename DTypeIn, typename DTypeO>
 gpuError_t AttentionSum(DTypeIn* v, DTypeO* v_sum, uint32_t num_index_sets, uint32_t seq_len,
                         uint32_t num_heads, uint32_t head_dim, gpuStream_t stream = nullptr) {
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t vec_size =
         16U / sizeof(DTypeIn) < HEAD_DIM / 32U ? HEAD_DIM / 32U : 16U / sizeof(DTypeIn);
 #else
@@ -715,7 +716,7 @@ gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DType
   FLASHINFER_CUDA_CALL(gpuDeviceGetAttribute(&num_sms, gpuDevAttrMultiProcessorCount, dev_id));
 
   DISPATCH_HEAD_DIM(head_dim, HEAD_DIM, {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t temp_1st = 16U / sizeof(DTypeIn);
     constexpr uint32_t temp_2nd = HEAD_DIM / 32U;
     constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -730,7 +731,7 @@ gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DType
         num_smem_stages * bdy * head_dim * sizeof(DTypeIn) + num_threads * sizeof(float);
     auto kernel = PersistentVariableLengthMergeStatesKernel<vec_size, bdx, bdy, num_smem_stages,
                                                             DTypeIn, DTypeO, IdType>;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, reinterpret_cast<const void*>(kernel),
                                                                       num_threads, smem_size));
 #else
@@ -742,7 +743,7 @@ gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DType
     dim3 nblks(num_sms * num_blocks_per_sm);
     dim3 nthrs(bdx, bdy);
     void* args[] = {&v, &s, &indptr, &v_merged, &s_merged, &max_seq_len, &seq_len, &num_heads};
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     FLASHINFER_CUDA_CALL(
         gpuFuncSetAttribute(reinterpret_cast<const void*>(kernel), gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
 #else
@@ -773,7 +774,7 @@ gpuError_t VariableLengthAttentionSum(DTypeIn* v, IdType* indptr, DTypeO* v_sum,
     uint32_t smem_size = num_smem_stages * bdy * head_dim * sizeof(DTypeIn);
     auto kernel = PersistentVariableLengthAttentionSumKernel<vec_size, bdx, bdy, num_smem_stages,
                                                              DTypeIn, DTypeO, IdType>;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, reinterpret_cast<const void*>(kernel),
                                                                        num_threads, smem_size));
 #else
@@ -785,7 +786,7 @@ gpuError_t VariableLengthAttentionSum(DTypeIn* v, IdType* indptr, DTypeO* v_sum,
     dim3 nblks(num_sms * num_blocks_per_sm);
     dim3 nthrs(bdx, bdy);
     void* args[] = {&v, &indptr, &v_sum, &max_seq_len, &seq_len, &num_heads};
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     FLASHINFER_CUDA_CALL(
         gpuFuncSetAttribute(reinterpret_cast<const void*>(kernel), gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
 #else

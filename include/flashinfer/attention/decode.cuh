@@ -18,13 +18,14 @@
 
 #include "../gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_cooperative_groups.h>
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
-#else
+#include <hip/hip_runtime_api.h>
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cooperative_groups.h>
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
@@ -222,7 +223,7 @@ __device__ __forceinline__ void sync_state(AttentionVariant variant, state_t<vec
  */
 template <PosEncodingMode pos_encoding_mode, uint32_t num_stages_smem, uint32_t tile_size_per_bdx,
           uint32_t vec_size, uint32_t bdx, uint32_t bdy, uint32_t bdz, typename AttentionVariant>
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __global__ void SingleDecodeWithKVCacheKernel(const typename AttentionVariant::ParamsT params) {
 #else
 __global__ void SingleDecodeWithKVCacheKernel(const __grid_constant__
@@ -406,7 +407,7 @@ __global__ void SingleDecodeWithKVCacheKernel(const __grid_constant__
  */
 template <PosEncodingMode POS_ENCODING_MODE, uint32_t num_stages_smem, uint32_t tile_size_per_bdx,
           uint32_t vec_size, uint32_t bdx, uint32_t bdy, uint32_t bdz, typename AttentionVariant>
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __global__ void BatchDecodeWithPagedKVCacheKernel(const typename AttentionVariant::ParamsT params) {
 #else
 __global__ void BatchDecodeWithPagedKVCacheKernel(const __grid_constant__
@@ -661,7 +662,7 @@ gpuError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT 
   const uint32_t num_kv_heads = params.num_kv_heads;
   const uint32_t seq_len = params.kv_len;
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
   constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
   constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -673,7 +674,7 @@ gpuError_t SingleDecodeWithKVCacheDispatched(typename AttentionVariant::ParamsT 
   static_assert(bdx <= 32U);
   DISPATCH_GQA_GROUP_SIZE(num_qo_heads / num_kv_heads, GROUP_SIZE, {
     constexpr uint32_t bdy = GROUP_SIZE;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t temp_1st = get_heuristic_num_threads(GROUP_SIZE, sizeof(DTypeKV));
     constexpr uint32_t temp_2nd = bdx * bdy;
     constexpr uint32_t num_threads = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -753,7 +754,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::Para
   const uint32_t num_kv_heads = params.paged_kv.num_heads;
   const uint32_t padded_batch_size = params.padded_batch_size;
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
   constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
   constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -765,7 +766,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::Para
   static_assert(bdx <= 32);
   DISPATCH_GQA_GROUP_SIZE(num_qo_heads / num_kv_heads, GROUP_SIZE, {
     constexpr uint32_t bdy = GROUP_SIZE;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
 #else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
@@ -780,7 +781,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatched(typename AttentionVariant::Para
       auto kernel =
           BatchDecodeWithPagedKVCacheKernel<POS_ENCODING_MODE, NUM_STAGES_SMEM, tile_size_per_bdx,
                                             vec_size, bdx, bdy, bdz, AttentionVariant>;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
       FLASHINFER_CUDA_CALL(
           gpuFuncSetAttribute(reinterpret_cast<const void*>(kernel), gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
 #else
@@ -1091,7 +1092,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::P
   const uint32_t num_qo_heads = params.num_qo_heads;
   const uint32_t padded_batch_size = params.padded_batch_size;
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
   constexpr uint32_t temp_2nd = HEAD_DIM_CKV / 32UL;
   constexpr uint32_t vec_size_ckv = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -1104,7 +1105,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::P
   constexpr uint32_t bdy = 8;
   constexpr uint32_t tile_size_qo_heads = 2;
   constexpr uint32_t qo_heads_per_block = bdy * tile_size_qo_heads;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
 #else
   constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
@@ -1121,7 +1122,7 @@ gpuError_t BatchDecodeWithPagedKVCacheDispatchedMLA(typename AttentionVariant::P
     auto kernel =
         BatchDecodeWithPagedKVCacheKernelMLA<NUM_STAGES_SMEM, vec_size_ckv, vec_size_kpe, bdx, bdy,
                                              bdz, tile_size_qo_heads, AttentionVariant>;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     FLASHINFER_CUDA_CALL(
         gpuFuncSetAttribute(reinterpret_cast<const void*>(kernel), gpuFuncAttributeMaxDynamicSharedMemorySize, smem_size));
 #else

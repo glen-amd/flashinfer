@@ -46,20 +46,20 @@ def jit_decode_attention_func_args(
         use_sliding_window_options,
         use_logits_soft_cap_options,
     ):
-        load_module_func_args.append(
-            (
-                flashinfer.decode.get_single_decode_module,
-                (
-                    q_dtype,
-                    kv_dtype,
-                    q_dtype,
-                    head_dim,
-                    pos_encoding_mode,
-                    use_sliding_window,
-                    use_logits_soft_cap,
-                ),
-            )
-        )
+#        load_module_func_args.append(
+#            (
+#                flashinfer.decode.get_single_decode_module,
+#                (
+#                    q_dtype,
+#                    kv_dtype,
+#                    q_dtype,
+#                    head_dim,
+#                    pos_encoding_mode,
+#                    use_sliding_window,
+#                    use_logits_soft_cap,
+#                ),
+#            )
+#        )
         load_module_func_args.append(
             (
                 flashinfer.decode.get_batch_decode_module,

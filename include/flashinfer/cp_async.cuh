@@ -16,9 +16,9 @@
 #ifndef FLASHINFER_CP_ASYNC_CUH_
 #define FLASHINFER_CP_ASYNC_CUH_
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_runtime.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_runtime.h>
 #endif
 

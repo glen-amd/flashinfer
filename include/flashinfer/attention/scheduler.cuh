@@ -18,9 +18,9 @@
 
 #include "../gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_runtime_api.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_runtime_api.h>
 #endif
 
@@ -39,7 +39,7 @@ namespace flashinfer {
 
 template <PosEncodingMode POS_ENCODING_MODE, uint32_t num_stages_smem, uint32_t tile_size_per_bdx,
           uint32_t vec_size, uint32_t bdx, uint32_t bdy, uint32_t bdz, typename AttentionVariant>
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __global__ void BatchDecodeWithPagedKVCacheKernel(const typename AttentionVariant::ParamsT params);
 #else
 __global__ void BatchDecodeWithPagedKVCacheKernel(const __grid_constant__
@@ -146,7 +146,7 @@ inline gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     const uint32_t page_size, bool enable_cuda_graph, gpuStream_t stream) {
   using DTypeKV = typename AttentionVariant::DTypeKV;
   using IdType = typename AttentionVariant::IdType;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
   constexpr uint32_t temp_2nd = HEAD_DIM / 32UL;
   constexpr uint32_t vec_size = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -158,7 +158,7 @@ inline gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatched(
     constexpr uint32_t bdx = HEAD_DIM / vec_size;
     static_assert(bdx <= 32);
     constexpr uint32_t bdy = GROUP_SIZE;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
 #else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);
@@ -222,7 +222,7 @@ gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
 
   auto compute_capacity = GetCudaComputeCapability();
   DISPATCH_COMPUTE_CAP_DECODE_NUM_STAGES_SMEM(compute_capacity, NUM_STAGES_SMEM, {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t temp_1st = 16UL / sizeof(DTypeKV);
     constexpr uint32_t temp_2nd = HEAD_DIM_CKV / 32UL;
     constexpr uint32_t vec_size_ckv = temp_1st < temp_2nd ? temp_2nd : temp_1st;
@@ -235,7 +235,7 @@ gpuError_t BatchDecodeWithPagedKVCacheWorkEstimationDispatchedMLA(
     constexpr uint32_t bdy = 8;
     constexpr uint32_t tile_size_qo_heads = 2;
     constexpr uint32_t qo_heads_per_block = bdy * tile_size_qo_heads;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     constexpr uint32_t num_threads = 128U < bdx * bdy ? bdx * bdy : 128U;
 #else
     constexpr uint32_t num_threads = std::max(128U, bdx * bdy);

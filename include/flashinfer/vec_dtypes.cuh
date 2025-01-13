@@ -18,14 +18,14 @@
 
 #include "./gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
 #include <math.h>
 #include <float.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cuda_fp8.h>
@@ -36,7 +36,7 @@
 
 #define FLASHINFER_INLINE inline __attribute__((always_inline)) __device__
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 /*
 Hacky workaround for the error below:
 
@@ -273,7 +273,7 @@ struct vec_cast<gpu_bfloat16, __gpu_fp8_e5m2> {
   }
 };
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 // Function to convert half-precision to e4m3
 __device__ uint8_t convert_f32_to_e4m3(float val) {
   // Define the range of e4m3
@@ -343,7 +343,7 @@ struct vec_cast<__gpu_fp8_e4m3, half> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint16_t y;
         uint32_t x = *(uint32_t*)&src[i * 2];
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
         __half2 x_h2 = convert_uint32_to_half2(x);
         y = convert_f16x2_to_e4m3x2(x_h2);
 #else
@@ -361,7 +361,7 @@ struct vec_cast<__gpu_fp8_e4m3, half> {
   }
 };
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ uint16_t convert_f16x2_to_e5m2x2(uint32_t x) {
   // Unpack the two 16-bit half-precision floats from the input
   // Extract lower 16 bits
@@ -428,7 +428,7 @@ struct vec_cast<__gpu_fp8_e5m2, half> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint16_t y;
         uint32_t x = *(uint32_t*)&src[i * 2];
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
         y = convert_f16x2_to_e5m2x2(x);
 #else
         asm volatile("cvt.rn.satfinite.e5m2x2.f16x2 %0, %1;" : "=h"(y) : "r"(x));
@@ -445,7 +445,7 @@ struct vec_cast<__gpu_fp8_e5m2, half> {
   }
 };
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ uint32_t convert_e4m3x2_to_f16x2(uint16_t x) {
   // Extract two e4m3 values from the 16-bit input
   uint8_t e4m3_1 = x & 0xFF;  // Lower 8 bits
@@ -493,7 +493,7 @@ struct vec_cast<half, __gpu_fp8_e4m3> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint32_t y;
         uint16_t x = *(uint16_t*)&src[i * 2];
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
         y = convert_e4m3x2_to_f16x2(x);
 #else
         asm volatile("cvt.rn.f16x2.e4m3x2 %0, %1;" : "=r"(y) : "h"(x));
@@ -518,7 +518,7 @@ struct vec_cast<half, __gpu_fp8_e4m3> {
   }
 };
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ uint32_t convert_e5m2x2_to_f16x2(uint16_t x) {
   // Extract two e5m2 values from the 16-bit input
   uint8_t e5m2_1 = x & 0xFF;  // Lower 8 bits
@@ -566,7 +566,7 @@ struct vec_cast<half, __gpu_fp8_e5m2> {
       for (size_t i = 0; i < vec_size / 2; ++i) {
         uint32_t y;
         uint16_t x = *(uint16_t*)&src[i * 2];
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
         y = convert_e5m2x2_to_f16x2(x);
 #else
         asm volatile("cvt.rn.f16x2.e5m2x2 %0, %1;" : "=r"(y) : "h"(x));
@@ -641,7 +641,7 @@ struct vec_t {
 template <typename src_float_t, typename tgt_float_t, size_t vec_size>
 FLASHINFER_INLINE void cast_from_impl(vec_t<tgt_float_t, vec_size>& dst,
                                       const vec_t<src_float_t, vec_size>& src) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   vec_cast<tgt_float_t, src_float_t>::template cast<vec_size>(
 #else
   vec_cast<tgt_float_t, src_float_t>::cast<vec_size>(

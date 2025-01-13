@@ -16,11 +16,11 @@
 #ifndef FLASHINFER_QUANTIZATION_CUH_
 #define FLASHINFER_QUANTIZATION_CUH_
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <hipcub/hipcub.hpp>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include <cub/cub.cuh>

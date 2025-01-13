@@ -127,7 +127,7 @@ def load_cuda_ops(
         with_cuda = None
         # cflags += ["-x", "hip"]
         # FIXME
-        cflags += ["-I/opt/rocm/include"]
+        cflags += ["-I/opt/rocm/include", "-D__HIP_PLATFORM_AMD__"]
         cuda_cflags += ["--offload-arch=gfx942", "-ffast-math", "-I/opt/rocm/include", "-L/opt/rocm/lib", "-lamdhip64", "-D__HIP_PLATFORM_AMD__"]
     else:
         print("Setting extra flags for CUDA")

@@ -18,12 +18,12 @@
 
 #include "./gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_bf16.h>
 #include <cuda_device_runtime_api.h>
 #include <cuda_fp16.h>
@@ -330,7 +330,7 @@ __device__ __forceinline__ uint32_t dim4_offset(const uint32_t& dim_c, const uin
   return ((idx_d * dim_c + idx_c) * dim_b + idx_b) * dim_a + idx_a;
 }
 
-#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__))
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 template <typename T>
 __device__ __host__ T convert_float_to_16bits(float val) {
   if constexpr (std::is_same_v<T, __half>) {

@@ -18,13 +18,13 @@
 
 #include "../gpu_defines_cuda_hip.h"
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 #include <hip/hip_cooperative_groups.h>
 #include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 #include <hip/hip_fp8.h>
 #include <hip/hip_runtime.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cooperative_groups.h>
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
@@ -47,7 +47,7 @@
 #include "variants.cuh"
 
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 // TODO: Better place to put these custom functions.
 __device__ __hip_bfloat162 convert_half2_to_bfloat162(const __half2 h2) {
   // Extract the two FP16 components.
@@ -787,7 +787,7 @@ __device__ __forceinline__ void update_mdo_states(AttentionVariant variant,
           m_prev[j] = m[mma_q][j];
 #pragma unroll
           for (uint32_t mma_kv = 0; mma_kv < NUM_MMA_KV; ++mma_kv) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
             __hip_bfloat162 temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2]),
                                                  convert_half2_to_bfloat162(*(half2*)&s_frag[mma_q][mma_kv][j * 2 + 4]));
             half2 m_local = convert_bfloat162_to_half2(temp_bf162);
@@ -798,7 +798,7 @@ __device__ __forceinline__ void update_mdo_states(AttentionVariant variant,
             m[mma_q][j] = __hmax(m[mma_q][j], __hmax(m_local.x, m_local.y));
           }
         }
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
         __hip_bfloat162 temp_bf162 = __hmax2(convert_half2_to_bfloat162(*(half2*)&m[mma_q]),
                                              convert_half2_to_bfloat162(math::shfl_xor_sync(*(half2*)&m[mma_q], 0x2)));
         *(half2*)&m[mma_q] = convert_bfloat162_to_half2(temp_bf162);
@@ -1167,7 +1167,7 @@ template <MaskMode MASK_MODE, PosEncodingMode POS_ENCODING_MODE, uint32_t NUM_MM
 __global__
 __launch_bounds__(NUM_WARPS_Q* NUM_WARPS_KV* WARP_SIZE) void SinglePrefillWithKVCacheKernel(
     const uint_fastdiv group_size,
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     const typename AttentionVariant::ParamsT params) {
 #else
     const __grid_constant__ typename AttentionVariant::ParamsT params) {
@@ -1580,7 +1580,7 @@ template <MaskMode MASK_MODE, PosEncodingMode POS_ENCODING_MODE, uint32_t NUM_MM
 __global__
 __launch_bounds__(NUM_WARPS_Q* NUM_WARPS_KV* WARP_SIZE) void BatchPrefillWithRaggedKVCacheKernel(
     const uint_fastdiv group_size,
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     const typename AttentionVariant::ParamsT params) {
 #else
     const __grid_constant__ typename AttentionVariant::ParamsT params) {
@@ -1878,7 +1878,7 @@ template <MaskMode MASK_MODE, PosEncodingMode POS_ENCODING_MODE, uint32_t NUM_MM
 __global__
 __launch_bounds__(NUM_WARPS_Q* NUM_WARPS_KV* WARP_SIZE) void BatchPrefillWithPagedKVCacheKernel(
     const uint_fastdiv group_size,
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     const typename AttentionVariant::ParamsT params) {
 #else
     const __grid_constant__ typename AttentionVariant::ParamsT params) {

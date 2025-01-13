@@ -16,7 +16,7 @@
 #ifndef FLASHINFER_MATH_CUH_
 #define FLASHINFER_MATH_CUH_
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 // #ifdef __HIPCC_RTC__  // Probably redundant
 // #undef __HIPCC_RTC__
 // #endif
@@ -33,7 +33,7 @@
 #include <hip/hip_runtime.h>
 #include <float.h>
 #include <math.h>
-#else
+#elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 #endif
@@ -54,7 +54,7 @@ __forceinline__ __device__ half2 uint32_as_half2(uint32_t x) { return *(half2*)&
 
 __forceinline__ __device__ uint32_t half2_as_uint32(half2 x) { return *(uint32_t*)&x; }
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ float compute_ex2_approx_ftz(float x) {
   // Define a small threshold for FTZ
   // Alternative __FLT_DENORM_MIN__
@@ -77,7 +77,7 @@ __device__ float compute_ex2_approx_ftz(float x) {
  */
 __forceinline__ __device__ float ptx_exp2(float x) {
   float y;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   y = compute_ex2_approx_ftz(x);
 #else
   asm volatile("ex2.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x));
@@ -85,7 +85,7 @@ __forceinline__ __device__ float ptx_exp2(float x) {
   return y;
 }
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ float compute_log2_approx_ftz(float x) {
   // Flush subnormals to zero
   if (fabsf(x) < __FLT_DENORM_MIN__) {
@@ -102,7 +102,7 @@ __device__ float compute_log2_approx_ftz(float x) {
  */
 __forceinline__ __device__ float ptx_log2(float x) {
   float y;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   y = compute_log2_approx_ftz(x);
 #else
   asm volatile("lg2.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x));
@@ -110,7 +110,7 @@ __forceinline__ __device__ float ptx_log2(float x) {
   return y;
 }
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ half2 compute_ex2_approx_f16x2(uint32_t x) {
   // Unpack the two 16-bit half-precision floats from the input
   // Extract lower 16 bits
@@ -134,7 +134,7 @@ __device__ half2 compute_ex2_approx_f16x2(uint32_t x) {
 __forceinline__ __device__ half2 ptx_exp2(half2 x) {
   uint32_t y_u32;
   uint32_t x_u32 = half2_as_uint32(x);
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   return compute_ex2_approx_f16x2(x_u32);
 #else
   asm volatile("ex2.approx.f16x2 %0, %1;" : "=r"(y_u32) : "r"(x_u32));
@@ -148,7 +148,7 @@ __forceinline__ __device__ half2 ptx_exp2(half2 x) {
  */
 __forceinline__ __device__ half ptx_exp2(half x) {
   ushort y_u16;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   return __float2half(exp2f(__half2float(x)));
 #else
   asm volatile("ex2.approx.f16 %0, %1;" : "=h"(y_u16) : "h"(__half_as_ushort(x)));
@@ -162,7 +162,7 @@ __forceinline__ __device__ half ptx_exp2(half x) {
  */
 __forceinline__ __device__ float ptx_rcp(float x) {
   float y;
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   // FIXME:
   // 1. FTZ may globally be controlled by hardware level configurations.
   // 2. The "round-to-nearest-even" mode is indicated by this intrinsic.
@@ -180,7 +180,7 @@ __forceinline__ __device__ float ptx_rcp(float x) {
  * \param lane_mask The mask to perform thread index xor with: y[i] <- x[i ^ delta]
  */
 __forceinline__ __device__ float shfl_xor_sync(float x, int lane_mask) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   // FIXME: May miss the synchronization across threads in the warp.
   return __shfl_xor(x, lane_mask);
 #else
@@ -199,7 +199,7 @@ __forceinline__ __device__ float shfl_xor_sync(float x, int lane_mask) {
  * \param lane_mask The mask to perform thread index xor with: y[i] <- x[i ^ lane_mask]
  */
 __forceinline__ __device__ half2 shfl_xor_sync(half2 x, int lane_mask) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   // FIXME: May miss the synchronization across threads in the warp.
   return __shfl_xor(x, lane_mask);
 #else
@@ -212,7 +212,7 @@ __forceinline__ __device__ half2 shfl_xor_sync(half2 x, int lane_mask) {
  * \param x input
  */
 __forceinline__ __device__ float rsqrt(float x) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   return __frsqrt_rn(x);
 #else
   float y;
@@ -226,7 +226,7 @@ __forceinline__ __device__ float rsqrt(float x) {
  * \param x input
  */
 __forceinline__ __device__ float tanh(float x) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   // FIXME:
   // In terms of precision vs. performance, a custom "tanhf" may be needed.
   return tanhf(x);
@@ -237,7 +237,7 @@ __forceinline__ __device__ float tanh(float x) {
 #endif
 }
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ uint32_t tanh_approx_uint32(uint32_t x) {
   // Convert uint32_t to float
   float x_f32 = __uint_as_float(x);
@@ -255,7 +255,7 @@ __device__ uint32_t tanh_approx_uint32(uint32_t x) {
 __forceinline__ __device__ half2 tanh(half2 x) {
   uint32_t y_u32;
   uint32_t x_u32 = half2_as_uint32(x);
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   y_u32 = tanh_approx_uint32(x_u32);
 #else
   asm volatile("tanh.approx.f16x2 %0, %1;" : "=r"(y_u32) : "r"(x_u32));
@@ -263,7 +263,7 @@ __forceinline__ __device__ half2 tanh(half2 x) {
   return uint32_as_half2(y_u32);
 }
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 __device__ __half tanh_approx_half(__half x) {
   // Approximation: tanh(x) ~ x * (1 - 0.5 * x^2)
   // FIXME:
@@ -279,7 +279,7 @@ __device__ __half tanh_approx_half(__half x) {
  * \param x input
  */
 __forceinline__ __device__ half tanh(half x) {
-#ifdef __HIPCC__
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
   return tanh_approx_half(x);
 #else
   ushort y_u16;

@@ -3,12 +3,13 @@
  * This approach is borrowed and extended from the 3rd-party Eigen wrapper/implementation in PyTorch.
  * It is NOT smart, NOT extensible, NOT flexiable, NOT adaptive,
  * but straightforward and good for early iterations of development.
+ * Smarter ones are expected to be implemented in futuer iterations.
  */
 #ifndef FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 #define FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 
 // To workaround some unexpected HIPify behavior
-#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__))
+#if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 
 #define gpuStream_t hipStream_t
 #define gpuDeviceProp_t hipDeviceProp_t
@@ -65,7 +66,7 @@
 #define gpu_bfloat162 __hip_bfloat162
 #define __gpu_bfloat162 __hip_bfloat162
 
-// #elif defined(__CUDACC__)
+// #elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #else
 
 #define gpuStream_t cudaStream_t
