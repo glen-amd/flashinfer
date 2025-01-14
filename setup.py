@@ -195,7 +195,7 @@ if enable_aot:
         cutlass.resolve() / "include",  # for group gemm
         cutlass.resolve() / "tools" / "util" / "include",
     ]
-    cxx_flags = ["-O3", "-g"]
+    cxx_flags = ["-O3"]
     if check_hip_availability():
         # FIXME
         cxx_flags += ["-I/opt/rocm/include", "-D__HIP_PLATFORM_AMD__"]
