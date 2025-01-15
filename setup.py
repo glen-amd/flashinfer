@@ -195,7 +195,7 @@ if enable_aot:
         cutlass.resolve() / "include",  # for group gemm
         cutlass.resolve() / "tools" / "util" / "include",
     ]
-    cxx_flags = ["-O3", "-g"]
+    cxx_flags = ["-O3"]
     if check_hip_availability():
         # FIXME
         cxx_flags += ["-I/opt/rocm/include", "-D__HIP_PLATFORM_AMD__"]
@@ -249,7 +249,7 @@ if enable_aot:
         torch_cpp_ext.CUDAExtension(
             name="flashinfer._kernels",
             # sources=kernel_sources + decode_sources + prefill_sources,
-            sources=["csrc/batch_decode.cu"] + decode_sources,
+            sources=["csrc/bmm_fp8.cu", "csrc/batch_decode.cu"] + decode_sources,
             include_dirs=include_dirs,
             extra_compile_args={
                 "cxx": cxx_flags,

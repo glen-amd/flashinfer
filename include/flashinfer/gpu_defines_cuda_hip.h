@@ -8,15 +8,13 @@
 #ifndef FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 #define FLASHINFER_GPU_DEFINES_CUDA_HIP_H_
 
-// To workaround some unexpected HIPify behavior
+
+// To work around some unexpected HIPify behavior
 #if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
 
 #define gpuStream_t hipStream_t
 #define gpuDeviceProp_t hipDeviceProp_t
 #define gpuError_t hipError_t
-#define gpublasStatus_t hipblasStatus_t
-#define gpublasLtMatmulDescOpaque_t hipblasLtMatmulDescOpaque_t
-#define GPUBLAS_STATUS_SUCCESS CUBLAS_STATUS_SUCCESS
 #define gpuSuccess hipSuccess
 #define gpuErrorNotReady hipErrorNotReady
 #define gpuGetDeviceCount hipGetDeviceCount
@@ -46,13 +44,56 @@
 #define gpuLaunchKernel hipLaunchKernel
 #define gpuFreeHost hipHostFree
 #define gpuMallocHost hipHostMalloc
-#define gpublasLtMatmulDescDestroy hipblasLtMatmulDescDestroy
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuDevAttrMaxSharedMemoryPerMultiprocessor hipDeviceAttributeMaxSharedMemoryPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize hipFuncAttributeMaxDynamicSharedMemorySize
 #define gpuDevAttrMultiProcessorCount hipDeviceAttributeMultiprocessorCount
 #define gpuDevAttrComputeCapabilityMajor hipDeviceAttributeComputeCapabilityMajor
 #define gpuDevAttrComputeCapabilityMinor hipDeviceAttributeComputeCapabilityMinor
+
+// BLAS/BLATLt
+#define gpublasStatus_t hipblasStatus_t
+#define gpublasLtMatmulDescOpaque_t hipblasLtMatmulDescOpaque_t
+#define gpublasLtMatrixLayoutOpaque_t hipblasLtMatrixLayoutOpaque_t
+#define gpublasComputeType_t hipblasComputeType_t
+#define gpuDataType_t hipDataType
+#define gpublasLtMatmulDesc_t hipblasLtMatmulDesc_t
+#define gpublasLtMatmulDescAttributes_t hipblasLtMatmulDescAttributes_t
+#define gpublasLtMatrixLayout_t hipblasLtMatrixLayout_t
+#define gpublasLtMatrixLayoutAttribute_t hipblasLtMatrixLayoutAttribute_t
+#define gpublasLtMatmulPreferenceOpaque_t hipblasLtMatmulPreferenceOpaque_t
+#define gpublasLtMatmulPreference_t hipblasLtMatmulPreference_t
+#define gpublasLtMatmulPreferenceAttributes_t hipblasLtMatmulPreferenceAttributes_t
+#define gpublasLtHandle_t hipblasLtHandle_t
+#define gpublasLtMatmulHeuristicResult_t hipblasLtMatmulHeuristicResult_t
+#define gpublasLtMatmulDescCreate hipblasLtMatmulDescCreate
+#define gpublasLtMatmulDescSetAttribute hipblasLtMatmulDescSetAttribute
+#define gpublasLtMatrixLayoutDestroy hipblasLtMatrixLayoutDestroy
+#define gpublasLtMatrixLayoutCreate hipblasLtMatrixLayoutCreate
+#define gpublasLtMatrixLayoutSetAttribute hipblasLtMatrixLayoutSetAttribute
+#define gpublasLtMatmulPreferenceDestroy hipblasLtMatmulPreferenceDestroy
+#define gpublasLtMatmulPreferenceCreate hipblasLtMatmulPreferenceCreate
+#define gpublasLtMatmulPreferenceSetAttribute hipblasLtMatmulPreferenceSetAttribute
+#define gpublasLtMatmulAlgoGetHeuristic hipblasLtMatmulAlgoGetHeuristic
+#define gpublasLtMatmulDescDestroy hipblasLtMatmulDescDestroy
+#define gpublasLtMatmul hipblasLtMatmul
+#define GPUBLAS_STATUS_SUCCESS HIPBLAS_STATUS_SUCCESS
+#define GPUBLAS_STATUS_NOT_SUPPORTED HIPBLAS_STATUS_NOT_SUPPORTED
+#define GPU_R_8F_E4M3 HIPBLAS_R_8F_E4M3
+#define GPU_R_8F_E5M2 HIPBLAS_R_8F_E5M2
+#define GPU_R_16BF HIP_R_16BF
+#define GPU_R_16F HIP_R_16F
+#define GPUBLAS_COMPUTE_32F HIPBLAS_COMPUTE_32F
+#define GPUBLASLT_MATMUL_DESC_TRANSA HIPBLASLT_MATMUL_DESC_TRANSA
+#define GPUBLASLT_MATMUL_DESC_TRANSB HIPBLASLT_MATMUL_DESC_TRANSB
+#define GPUBLAS_OP_T HIPBLAS_OP_T
+#define GPUBLASLT_MATMUL_DESC_FAST_ACCUM HIPBLASLT_MATMUL_DESC_FAST_ACCUM
+#define GPUBLASLT_MATMUL_DESC_A_SCALE_POINTER HIPBLASLT_MATMUL_DESC_A_SCALE_POINTER
+#define GPUBLASLT_MATMUL_DESC_B_SCALE_POINTER HIPBLASLT_MATMUL_DESC_B_SCALE_POINTER
+#define GPUBLASLT_MATRIX_LAYOUT_BATCH_COUNT HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT
+#define GPUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET
+#define GPUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES HIPBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES
+
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __hip_fp8_e4m3_fnuz
 #define __gpu_fp8_e5m2 __hip_fp8_e5m2_fnuz
@@ -70,15 +111,14 @@
 #define gpu_bfloat162 __hip_bfloat162
 #define __gpu_bfloat162 __hip_bfloat162
 
+
 // #elif defined(__CUDACC__) || defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__)) || defined(__CUDACC_RTC__)
 #else
+
 
 #define gpuStream_t cudaStream_t
 #define gpuDeviceProp_t cudaDeviceProp
 #define gpuError_t cudaError_t
-#define gpublasStatus_t cublasStatus_t
-#define gpublasLtMatmulDescOpaque_t cublasLtMatmulDescOpaque_t
-#define GPUBLAS_STATUS_SUCCESS HIPBLAS_STATUS_SUCCESS
 #define gpuSuccess cudaSuccess
 #define gpuErrorNotReady cudaErrorNotReady
 #define gpuGetDeviceCount cudaGetDeviceCount
@@ -108,13 +148,56 @@
 #define gpuLaunchKernel cudaLaunchKernel
 #define gpuFreeHost cudaFreeHost
 #define gpuMallocHost cudaMallocHost
-#define gpublasLtMatmulDescDestroy cublasLtMatmulDescDestroy
 #define gpuOccupancyMaxActiveBlocksPerMultiprocessor cudaOccupancyMaxActiveBlocksPerMultiprocessor
 #define gpuDevAttrMaxSharedMemoryPerMultiprocessor cudaDevAttrMaxSharedMemoryPerMultiprocessor
 #define gpuFuncAttributeMaxDynamicSharedMemorySize cudaFuncAttributeMaxDynamicSharedMemorySize
 #define gpuDevAttrMultiProcessorCount cudaDevAttrMultiProcessorCount
 #define gpuDevAttrComputeCapabilityMajor cudaDevAttrComputeCapabilityMajor
 #define gpuDevAttrComputeCapabilityMinor cudaDevAttrComputeCapabilityMinor
+
+// BLAS/BLASLt
+#define gpublasStatus_t cublasStatus_t
+#define gpublasLtMatmulDescOpaque_t cublasLtMatmulDescOpaque_t
+#define gpublasLtMatrixLayoutOpaque_t cublasLtMatrixLayoutOpaque_t
+#define gpublasComputeType_t cublasComputeType_t
+#define gpuDataType_t cudaDataType_t
+#define gpublasLtMatmulDesc_t cublasLtMatmulDesc_t
+#define gpublasLtMatmulDescAttributes_t cublasLtMatmulDescAttributes_t
+#define gpublasLtMatrixLayout_t cublasLtMatrixLayout_t
+#define gpublasLtMatrixLayoutAttribute_t cublasLtMatrixLayoutAttribute_t
+#define gpublasLtMatmulPreferenceOpaque_t cublasLtMatmulPreferenceOpaque_t
+#define gpublasLtMatmulPreference_t cublasLtMatmulPreference_t
+#define gpublasLtMatmulPreferenceAttributes_t cublasLtMatmulPreferenceAttributes_t
+#define gpublasLtHandle_t cublasLtHandle_t
+#define gpublasLtMatmulHeuristicResult_t cublasLtMatmulHeuristicResult_t
+#define gpublasLtMatmulDescCreate hipblasLtMatmulDescCreate
+#define gpublasLtMatmulDescSetAttribute cublasLtMatmulDescSetAttribute
+#define gpublasLtMatrixLayoutDestroy cublasLtMatrixLayoutDestroy
+#define gpublasLtMatrixLayoutCreate cublasLtMatrixLayoutCreate
+#define gpublasLtMatrixLayoutSetAttribute cublasLtMatrixLayoutSetAttribute
+#define gpublasLtMatmulPreferenceDestroy cublasLtMatmulPreferenceDestroy
+#define gpublasLtMatmulPreferenceCreate cublasLtMatmulPreferenceCreate
+#define gpublasLtMatmulPreferenceSetAttribute cublasLtMatmulPreferenceSetAttribute
+#define gpublasLtMatmulAlgoGetHeuristic cublasLtMatmulAlgoGetHeuristic
+#define gpublasLtMatmulDescDestroy cublasLtMatmulDescDestroy
+#define gpublasLtMatmul cublasLtMatmul
+#define GPUBLAS_STATUS_SUCCESS CUBLAS_STATUS_SUCCESS
+#define GPUBLAS_STATUS_NOT_SUPPORTED CUBLAS_STATUS_NOT_SUPPORTED
+#define GPU_R_8F_E4M3 CUDA_R_8F_E4M3
+#define GPU_R_8F_E5M2 CUDA_R_8F_E5M2
+#define GPU_R_16BF CUDA_R_16BF
+#define GPU_R_16F CUDA_R_16F
+#define GPUBLAS_COMPUTE_32F CUBLAS_COMPUTE_32F
+#define GPUBLASLT_MATMUL_DESC_TRANSA CUBLASLT_MATMUL_DESC_TRANSA
+#define GPUBLASLT_MATMUL_DESC_TRANSB CUBLASLT_MATMUL_DESC_TRANSB
+#define GPUBLAS_OP_T CUBLAS_OP_T
+#define GPUBLASLT_MATMUL_DESC_FAST_ACCUM CUBLASLT_MATMUL_DESC_FAST_ACCUM
+#define GPUBLASLT_MATMUL_DESC_A_SCALE_POINTER CUBLASLT_MATMUL_DESC_A_SCALE_POINTER
+#define GPUBLASLT_MATMUL_DESC_B_SCALE_POINTER CUBLASLT_MATMUL_DESC_B_SCALE_POINTER
+#define GPUBLASLT_MATRIX_LAYOUT_BATCH_COUNT CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT
+#define GPUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET CUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET
+#define GPUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES
+
 // float8 Precision Device types
 #define __gpu_fp8_e4m3 __nv_fp8_e4m3
 #define __gpu_fp8_e5m2 __nv_fp8_e5m2
@@ -130,7 +213,9 @@
 #define gpu_bfloat162 nv_bfloat162
 #define __gpu_bfloat162 __nv_bfloat162
 
+
 #endif  // __CUDACC__ or __HIPCC__
+
 
 // `gpu_assert` can be overridden.
 #ifndef gpu_assert
@@ -143,5 +228,6 @@
 #endif
 
 #endif  // gpu_assert
+
 
 #endif  // FLASHINFER_GPU_DEFINES_CUDA_HIP_H_

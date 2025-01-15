@@ -38,8 +38,8 @@ void bmm_fp8(at::Tensor A, at::Tensor B, at::Tensor D, at::Tensor A_scale, at::T
   auto k = A.size(2);
   auto n = B.size(2);
 
-  auto lt_handle = reinterpret_cast<cublasLtHandle_t>(cublas_handle);
-  auto stream = reinterpret_cast<cudaStream_t>(cuda_stream);
+  auto lt_handle = reinterpret_cast<gpublasLtHandle_t>(cublas_handle);
+  auto stream = reinterpret_cast<gpuStream_t>(cuda_stream);
   // PyTorch is row major by default. cuBLASLt is column major by default.
   // We need row major D as expected.
   // A ^ T * B = D, so D ^ T = B ^ T * A
@@ -52,7 +52,7 @@ void bmm_fp8(at::Tensor A, at::Tensor B, at::Tensor D, at::Tensor A_scale, at::T
             static_cast<d_type*>(D.data_ptr()), batch_size, n, m, k,
             static_cast<float*>(B_scale.data_ptr()), static_cast<float*>(A_scale.data_ptr()),
             lt_handle, stream);
-        TORCH_CHECK(status == CUBLAS_STATUS_SUCCESS,
+        TORCH_CHECK(status == GPUBLAS_STATUS_SUCCESS,
                     "bmm_fp8_internal_cublaslt failed: ", cublasGetStatusString(status));
         return true;
       });

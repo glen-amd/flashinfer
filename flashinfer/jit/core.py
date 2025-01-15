@@ -119,8 +119,8 @@ def load_cuda_ops(
     extra_include_paths=None,
     verbose=False,
 ):
-    cflags = ["-O3", "-g"]
-    cuda_cflags = ["-O3", "-g", "-std=c++17", "-DFLASHINFER_ENABLE_BF16", "-DFLASHINFER_ENABLE_FP8"]
+    cflags = ["-O3"]
+    cuda_cflags = ["-O3", "-std=c++17", "-DFLASHINFER_ENABLE_BF16", "-DFLASHINFER_ENABLE_FP8"]
     with_cuda = True
     if check_hip_availability():
         print("Setting extra flags for ROCm/HIP")
