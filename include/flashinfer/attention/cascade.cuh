@@ -757,8 +757,8 @@ gpuError_t VariableLengthMergeStates(DTypeIn* v, float* s, IdType* indptr, DType
 
 template <typename DTypeIn, typename DTypeO, typename IdType>
 gpuError_t VariableLengthAttentionSum(DTypeIn* v, IdType* indptr, DTypeO* v_sum,
-                                       uint32_t max_seq_len, uint32_t* seq_len, uint32_t num_heads,
-                                       uint32_t head_dim, gpuStream_t stream = nullptr) {
+                                      uint32_t max_seq_len, uint32_t* seq_len, uint32_t num_heads,
+                                      uint32_t head_dim, gpuStream_t stream = nullptr) {
   int dev_id = 0;
   int num_sms = 0;
   int num_blocks_per_sm = 0;
@@ -776,10 +776,10 @@ gpuError_t VariableLengthAttentionSum(DTypeIn* v, IdType* indptr, DTypeO* v_sum,
                                                              DTypeIn, DTypeO, IdType>;
 #if defined(__HIPCC__) || (defined(__clang__) && defined(__HIP__)) || defined(__HIPCC_RTC__)
     FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, reinterpret_cast<const void*>(kernel),
-                                                                       num_threads, smem_size));
+                                                                      num_threads, smem_size));
 #else
     FLASHINFER_CUDA_CALL(gpuOccupancyMaxActiveBlocksPerMultiprocessor(&num_blocks_per_sm, kernel,
-                                                                       num_threads, smem_size));
+                                                                      num_threads, smem_size));
 #endif
     num_blocks_per_sm = min(num_blocks_per_sm, ceil_div(max_seq_len * num_heads, num_sms));
 

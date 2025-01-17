@@ -76,7 +76,7 @@ def warmup_jit():
 @pytest.mark.parametrize(
     "kv_dtype", [torch.float16, torch.float8_e4m3fn, torch.float8_e5m2]
     # "kv_dtype", [torch.float16]
- )
+)
 @pytest.mark.parametrize("contiguous_kv", [True, False])
 # @pytest.mark.parametrize("contiguous_kv", [True])
 def test_batch_decode_with_paged_kv_cache(

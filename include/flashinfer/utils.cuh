@@ -47,14 +47,14 @@
 #endif
 
 #ifndef NDEBUG
-#define FLASHINFER_CUDA_CALL(func, ...)                                                   \
-  {                                                                                       \
-    gpuError_t e = (func);                                                                \
-    if (e != gpuSuccess) {                                                                \
-      std::cerr << "CUDA Error: " << gpuGetErrorString(e)<< " (" << e << ") " << __FILE__ \
-                << ": line " << __LINE__ << " at function " << STR(func) << std::endl;    \
-      return e;                                                                           \
-    }                                                                                     \
+#define FLASHINFER_CUDA_CALL(func, ...)                                                    \
+  {                                                                                        \
+    gpuError_t e = (func);                                                                 \
+    if (e != gpuSuccess) {                                                                 \
+      std::cerr << "CUDA Error: " << gpuGetErrorString(e) << " (" << e << ") " << __FILE__ \
+                << ": line " << __LINE__ << " at function " << STR(func) << std::endl;     \
+      return e;                                                                            \
+    }                                                                                      \
   }
 #else
 #define FLASHINFER_CUDA_CALL(func, ...) \
