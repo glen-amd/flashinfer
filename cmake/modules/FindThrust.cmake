@@ -22,6 +22,13 @@
 # files will actually be in the thrust subdirectory.) THRUST_VERSION - Version
 # of thrust in the form "major.minor.patch".
 #
+# TODO:
+# CUDA Thrust vs. HIP rocPrim + rocThrust
+
+# "/opt/rocm" - default install prefix
+# On ROCm rocThrust requires rocPRIM
+# find_package(rocprim REQUIRED CONFIG PATHS "/opt/rocm/rocprim")
+# find_package(rocthrust REQUIRED CONFIG PATHS "/opt/rocm/rocthrust")
 
 find_path(
   THRUST_INCLUDE_DIR
@@ -33,6 +40,7 @@ find_path(
         /usr/local/include
         /usr/local/cuda/include
         ${CUDA_INCLUDE_DIRS}
+        # /opt/rocm/rocthrust
   NAMES thrust/version.h
   DOC "Thrust headers")
 if(THRUST_INCLUDE_DIR)

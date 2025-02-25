@@ -28,14 +28,14 @@
 #endif
 
 // FIXME
-#if defined(__CUDACC__) || defined(__HIPCC__)
+// #if defined(__CUDACC__) || defined(__HIPCC__)
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/host_vector.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/random.h>
 #include <thrust/transform.h>
-#endif
+// #endif
 
 #include <random>
 #include <sstream>
